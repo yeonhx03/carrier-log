@@ -20,7 +20,13 @@ function parseDateParts(dateValue) {
   }
 }
 
-export default function LogInputForm({ companies, logs = [], onAddLog, onBack }) {
+export default function LogInputForm({
+  companies,
+  logs = [],
+  noteCategories,
+  onAddLog,
+  onBack,
+}) {
   const today = useMemo(() => getTodayValue(), [])
 
   const [selectedCompanyId, setSelectedCompanyId] = useState('')
@@ -31,7 +37,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
   const [carNumber, setCarNumber] = useState('')
   const [extraKm, setExtraKm] = useState('')
   const [note, setNote] = useState('')
-  const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false)
 
   const selectedCompany = companies.find(
     (company) => company.id === selectedCompanyId,
@@ -68,39 +73,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
 
     return matchedCarTypes.length > 0 ? matchedCarTypes : recentCarTypes
   }, [carType, recentCarTypes])
-  const recentNotes = useMemo(() => {
-    const seen = new Set()
-
-    return [...logs]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .map((log) => log.note?.trim())
-      .filter(Boolean)
-      .filter((item) => {
-        const key = item.toLowerCase()
-
-        if (seen.has(key)) {
-          return false
-        }
-
-        seen.add(key)
-        return true
-      })
-      .slice(0, 8)
-  }, [logs])
-  const noteSuggestions = useMemo(() => {
-    const normalizedNote = note.trim().toLowerCase()
-
-    if (!normalizedNote) {
-      return recentNotes
-    }
-
-    const matchedNotes = recentNotes.filter((item) =>
-      item.toLowerCase().includes(normalizedNote),
-    )
-
-    return matchedNotes.length > 0 ? matchedNotes : recentNotes
-  }, [note, recentNotes])
-
   const resetFields = () => {
     setDate(getTodayValue())
     setCarType('')
@@ -108,7 +80,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
     setCarNumber('')
     setExtraKm('')
     setNote('')
-    setIsNoteSuggestionsOpen(false)
   }
 
   const handleBack = () => {
@@ -201,7 +172,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
             value={date}
             onFocus={() => {
               setIsCarTypeSuggestionsOpen(false)
-              setIsNoteSuggestionsOpen(false)
             }}
             onChange={(event) => setDate(event.target.value)}
           />
@@ -216,7 +186,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
             onChange={(event) => {
               setCarType(event.target.value)
               setIsCarTypeSuggestionsOpen(true)
-              setIsNoteSuggestionsOpen(false)
             }}
             placeholder="그랜저"
           />
@@ -249,7 +218,6 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
             value={carNumber}
             onFocus={() => {
               setIsCarTypeSuggestionsOpen(false)
-              setIsNoteSuggestionsOpen(false)
             }}
             onChange={(event) => setCarNumber(event.target.value)}
             placeholder="4자리"
@@ -265,48 +233,30 @@ export default function LogInputForm({ companies, logs = [], onAddLog, onBack })
             value={extraKm}
             onFocus={() => {
               setIsCarTypeSuggestionsOpen(false)
-              setIsNoteSuggestionsOpen(false)
             }}
             onChange={(event) => setExtraKm(event.target.value)}
             placeholder="0"
           />
         </label>
 
-        <label className="flow-field note-field">
-          <span>비고</span>
-          <textarea
-            value={note}
-            onFocus={() => {
-              setIsCarTypeSuggestionsOpen(false)
-              setIsNoteSuggestionsOpen(true)
-            }}
-            onChange={(event) => {
-              setNote(event.target.value)
-              setIsCarTypeSuggestionsOpen(false)
-              setIsNoteSuggestionsOpen(true)
-            }}
-            placeholder="문자 입력"
-            rows={3}
-          />
-        </label>
-
-        {isNoteSuggestionsOpen && noteSuggestions.length > 0 && (
-          <div className="field-suggestions" aria-label="최근 비고">
-            <strong>최근 비고</strong>
-            {noteSuggestions.map((item) => (
+        <div className="note-category-panel">
+          <strong>비고</strong>
+          <div className="note-category-grid">
+            {noteCategories.map((category) => (
               <button
-                key={item}
+                key={category.value || 'empty'}
                 type="button"
                 onClick={() => {
-                  setNote(item)
-                  setIsNoteSuggestionsOpen(false)
+                  setNote(category.value)
+                  setIsCarTypeSuggestionsOpen(false)
                 }}
+                className={note === category.value ? 'is-selected' : ''}
               >
-                {item}
+                {category.label}
               </button>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="bottom-actions">

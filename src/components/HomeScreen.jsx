@@ -3,6 +3,7 @@ export default function HomeScreen({
   onInput,
   onHistory,
   onExport,
+  onSettlement,
   onSettings,
 }) {
   return (
@@ -23,6 +24,14 @@ export default function HomeScreen({
         </button>
         <button type="button" onClick={onExport} className="home-action-button action-export">
           <span>내보내기</span>
+          <strong>Excel / PDF</strong>
+        </button>
+        <button
+          type="button"
+          onClick={onSettlement}
+          className="home-action-button action-settlement"
+        >
+          <span>정산 내역서</span>
           <strong>Excel / PDF</strong>
         </button>
       </div>

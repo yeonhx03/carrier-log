@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import ExportScreen from './components/ExportScreen'
 import HistoryCompanyTable from './components/HistoryCompanyTable'
@@ -6,8 +6,10 @@ import HistoryScreen from './components/HistoryScreen'
 import HomeScreen from './components/HomeScreen'
 import LogInputForm from './components/LogInputForm'
 import LogDetailView from './components/LogDetailView'
+import SettlementScreen from './components/SettlementScreen'
 import SettingsPanel from './components/SettingsPanel'
-import { initialCompanies, initialLogs } from './data/sampleData'
+import { initialNoteCategories } from './data/noteCategories'
+import { initialCompanies } from './data/sampleData'
 import { createCompanyId } from './utils/companies'
 import {
   getCurrentMonthKey,
@@ -20,11 +22,87 @@ import {
   downloadBlob,
   getExportFilename,
 } from './utils/exportFiles'
+import {
+  buildSettlementExcel,
+  buildSettlementPrintHtml,
+  DEFAULT_FIXED_DEDUCTION,
+  getSettlementFilename,
+  getSettlementSummary,
+} from './utils/settlementFiles'
+
+const defaultSettlementAccounts = [
+  { id: 1, name: '', bank: '', accountNumber: '', amount: '' },
+]
+
+function getInitialSettlementAccounts() {
+  try {
+    const savedAccounts = window.localStorage.getItem('settlementAccounts')
+
+    return savedAccounts ? JSON.parse(savedAccounts) : defaultSettlementAccounts
+  } catch {
+    return defaultSettlementAccounts
+  }
+}
+
+function getInitialSettlementAccountTemplates() {
+  try {
+    const savedTemplates = window.localStorage.getItem(
+      'settlementAccountTemplates',
+    )
+
+    if (!savedTemplates) {
+      return []
+    }
+
+    const parsedTemplates = JSON.parse(savedTemplates)
+
+    return parsedTemplates.filter((template) => Array.isArray(template.accounts))
+  } catch {
+    return []
+  }
+}
+
+function getInitialNumber(key, fallbackValue) {
+  try {
+    const savedValue = window.localStorage.getItem(key)
+
+    return savedValue ? Number(savedValue) : fallbackValue
+  } catch {
+    return fallbackValue
+  }
+}
+
+function getInitialStringList(key) {
+  try {
+    const savedValue = window.localStorage.getItem(key)
+
+    return savedValue ? JSON.parse(savedValue) : []
+  } catch {
+    return []
+  }
+}
+
+function getInitialStoredValue(key, fallbackValue) {
+  try {
+    const savedValue = window.localStorage.getItem(key)
+
+    return savedValue ? JSON.parse(savedValue) : fallbackValue
+  } catch {
+    return fallbackValue
+  }
+}
 
 function App() {
   const [screen, setScreen] = useState('home')
-  const [companies, setCompanies] = useState(initialCompanies)
-  const [logs, setLogs] = useState(initialLogs)
+  const [companies, setCompanies] = useState(() =>
+    getInitialStoredValue('companies', initialCompanies),
+  )
+  const [noteCategories, setNoteCategories] = useState(() =>
+    getInitialStoredValue('noteCategories', initialNoteCategories),
+  )
+  const [logs, setLogs] = useState(() =>
+    getInitialStoredValue('logs', []),
+  )
   const [isHistorySearchOpen, setIsHistorySearchOpen] = useState(false)
   const [historySearchType, setHistorySearchType] = useState('date')
   const [historySearch, setHistorySearch] = useState('')
@@ -40,10 +118,73 @@ function App() {
   const [exportFormat, setExportFormat] = useState('excel')
   const [exportMode, setExportMode] = useState('all')
   const [selectedExportCompanyId, setSelectedExportCompanyId] = useState('')
+  const [selectedSettlementMonth, setSelectedSettlementMonth] =
+    useState(getCurrentMonthKey)
+  const [settlementFormat, setSettlementFormat] = useState('excel')
   const [isSettingOpen, setIsSettingOpen] = useState(false)
+  const [settingSection, setSettingSection] = useState('menu')
   const [newCompanyName, setNewCompanyName] = useState('')
+  const [newNoteCategoryName, setNewNoteCategoryName] = useState('')
+  const [newNoteCategoryPrice, setNewNoteCategoryPrice] = useState('')
+  const [settlementFixedDeduction, setSettlementFixedDeduction] = useState(() =>
+    getInitialNumber('settlementFixedDeduction', DEFAULT_FIXED_DEDUCTION),
+  )
+  const [settlementStep, setSettlementStep] = useState('summary')
+  const [settlementRequest, setSettlementRequest] = useState('')
+  const [settlementRequestTemplates, setSettlementRequestTemplates] = useState(
+    () => getInitialStringList('settlementRequestTemplates'),
+  )
+  const [settlementAccounts, setSettlementAccounts] = useState(
+    getInitialSettlementAccounts,
+  )
+  const [settlementAccountTemplates, setSettlementAccountTemplates] = useState(
+    getInitialSettlementAccountTemplates,
+  )
 
   const selectedLog = logs.find((log) => log.id === selectedLogId)
+
+  useEffect(() => {
+    window.localStorage.setItem('companies', JSON.stringify(companies))
+  }, [companies])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'noteCategories',
+      JSON.stringify(noteCategories),
+    )
+  }, [noteCategories])
+
+  useEffect(() => {
+    window.localStorage.setItem('logs', JSON.stringify(logs))
+  }, [logs])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'settlementAccounts',
+      JSON.stringify(settlementAccounts),
+    )
+  }, [settlementAccounts])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'settlementAccountTemplates',
+      JSON.stringify(settlementAccountTemplates),
+    )
+  }, [settlementAccountTemplates])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'settlementFixedDeduction',
+      String(settlementFixedDeduction),
+    )
+  }, [settlementFixedDeduction])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'settlementRequestTemplates',
+      JSON.stringify(settlementRequestTemplates),
+    )
+  }, [settlementRequestTemplates])
 
   const getCompanyName = (companyId, fallbackName) => {
     return (
@@ -53,7 +194,7 @@ function App() {
     )
   }
 
-  const getAvailableHistoryMonths = () => {
+  const getAvailableHistoryMonths = (fallbackMonth = selectedHistoryMonth) => {
     const monthMap = new Map()
 
     logs.forEach((log) => {
@@ -65,10 +206,10 @@ function App() {
       })
     })
 
-    if (!monthMap.has(selectedHistoryMonth)) {
-      const [year, month] = selectedHistoryMonth.split('-').map(Number)
-      monthMap.set(selectedHistoryMonth, {
-        key: selectedHistoryMonth,
+    if (!monthMap.has(fallbackMonth)) {
+      const [year, month] = fallbackMonth.split('-').map(Number)
+      monthMap.set(fallbackMonth, {
+        key: fallbackMonth,
         year,
         month,
       })
@@ -271,6 +412,72 @@ function App() {
     setScreen('export')
   }
 
+  const openSettlement = () => {
+    setSelectedSettlementMonth(getCurrentMonthKey())
+    setSettlementFormat('excel')
+    setSettlementStep('summary')
+    setScreen('settlement')
+  }
+
+  const getSettlementLogs = (monthKey) => {
+    const [year, month] = monthKey.split('-').map(Number)
+
+    return logs
+      .filter((log) => log.year === year && log.month === month)
+      .map((log) => ({
+        ...log,
+        companyName: getCompanyName(log.companyId, log.companyName),
+      }))
+  }
+
+  const runSettlementExport = () => {
+    const targetLogs = getSettlementLogs(selectedSettlementMonth)
+
+    if (targetLogs.length === 0) {
+      alert('정산할 내역이 없습니다.')
+      return
+    }
+
+    if (settlementFormat === 'excel') {
+      saveSettlementRequestTemplate()
+      downloadBlob(
+        buildSettlementExcel(
+          selectedSettlementMonth,
+          targetLogs,
+          noteCategories,
+          settlementFixedDeduction,
+          settlementAccounts,
+          settlementRequest,
+        ),
+        getSettlementFilename(selectedSettlementMonth, 'xls'),
+        'application/vnd.ms-excel;charset=utf-8',
+      )
+      return
+    }
+
+    const printWindow = window.open('', '_blank')
+
+    if (!printWindow) {
+      alert('팝업이 차단되어 PDF 화면을 열 수 없습니다.')
+      return
+    }
+
+    printWindow.document.write(
+      buildSettlementPrintHtml(
+        selectedSettlementMonth,
+        targetLogs,
+        noteCategories,
+        settlementFixedDeduction,
+        settlementAccounts,
+        settlementRequest,
+      ),
+    )
+    printWindow.document.close()
+    printWindow.focus()
+    saveSettlementRequestTemplate()
+    setTimeout(() => printWindow.print(), 250)
+  }
+
   const handleAddCompany = () => {
     const trimmedName = newCompanyName.trim()
 
@@ -318,6 +525,195 @@ function App() {
     setCompanies((prevCompanies) =>
       prevCompanies.filter((company) => company.id !== companyId),
     )
+  }
+
+  const handleUpdateNoteCategory = (categoryValue, nextName, nextPrice) => {
+    const trimmedName = nextName.trim()
+    const unitPrice = Number(nextPrice || 0)
+
+    if (categoryValue && !trimmedName) {
+      alert('비고 이름을 입력해주세요.')
+      return
+    }
+
+    if (
+      categoryValue &&
+      noteCategories.some(
+        (category) =>
+          category.value !== categoryValue && category.value === trimmedName,
+      )
+    ) {
+      alert('이미 등록된 비고 카테고리입니다.')
+      return
+    }
+
+    setNoteCategories((prevCategories) =>
+      prevCategories.map((category) => {
+        if (category.value !== categoryValue) {
+          return category
+        }
+
+        return {
+          ...category,
+          value: trimmedName,
+          label: trimmedName,
+          unitPrice,
+        }
+      }),
+    )
+
+    if (categoryValue && categoryValue !== trimmedName) {
+      setLogs((prevLogs) =>
+        prevLogs.map((log) =>
+          log.note === categoryValue ? { ...log, note: trimmedName } : log,
+        ),
+      )
+    }
+  }
+
+  const handleUpdateDefaultUnitPrice = (nextPrice) => {
+    setNoteCategories((prevCategories) =>
+      prevCategories.map((category) =>
+        category.value === ''
+          ? { ...category, unitPrice: Number(nextPrice || 0) }
+          : category,
+      ),
+    )
+  }
+
+  const handleUpdateFixedDeduction = (nextPrice) => {
+    setSettlementFixedDeduction(Number(nextPrice || 0))
+  }
+
+  const handleAddNoteCategory = () => {
+    const trimmedName = newNoteCategoryName.trim()
+
+    if (!trimmedName) {
+      return
+    }
+
+    if (noteCategories.some((category) => category.value === trimmedName)) {
+      alert('이미 등록된 비고 카테고리입니다.')
+      return
+    }
+
+    setNoteCategories((prevCategories) => [
+      ...prevCategories,
+      {
+        value: trimmedName,
+        label: trimmedName,
+        unitPrice: Number(newNoteCategoryPrice || 0),
+      },
+    ])
+    setNewNoteCategoryName('')
+    setNewNoteCategoryPrice('')
+  }
+
+  const handleDeleteNoteCategory = (categoryValue) => {
+    setNoteCategories((prevCategories) =>
+      prevCategories.filter((category) => category.value !== categoryValue),
+    )
+    setLogs((prevLogs) =>
+      prevLogs.map((log) =>
+        log.note === categoryValue ? { ...log, note: '' } : log,
+      ),
+    )
+  }
+
+  const handleUpdateSettlementAccount = (accountId, field, value) => {
+    setSettlementAccounts((prevAccounts) =>
+      prevAccounts.map((account) =>
+        account.id === accountId ? { ...account, [field]: value } : account,
+      )
+    )
+  }
+
+  const handleAddSettlementAccount = () => {
+    setSettlementAccounts((prevAccounts) => [
+      ...prevAccounts,
+      {
+        id: Date.now(),
+        name: '',
+        bank: '',
+        accountNumber: '',
+        amount: '',
+      },
+    ])
+  }
+
+  const handleDeleteSettlementAccount = (accountId) => {
+    setSettlementAccounts((prevAccounts) => {
+      if (prevAccounts.length === 1) {
+        return prevAccounts
+      }
+
+      return prevAccounts.filter((account) => account.id !== accountId)
+    })
+  }
+
+  const handleRegisterSettlementAccountTemplate = (templateName) => {
+    const trimmedName = templateName.trim()
+    const accounts = settlementAccounts
+      .filter((account) => {
+        return (
+          account.name.trim() &&
+          account.bank.trim() &&
+          account.accountNumber.trim()
+        )
+      })
+      .map((account) => ({
+        name: account.name.trim(),
+        bank: account.bank.trim(),
+        accountNumber: account.accountNumber.trim(),
+      }))
+
+    if (!trimmedName) {
+      alert('템플릿 이름을 입력해주세요.')
+      return
+    }
+
+    if (accounts.length === 0) {
+      alert('저장할 계좌 정보를 입력해주세요.')
+      return
+    }
+
+    setSettlementAccountTemplates((prevTemplates) => {
+      const nextTemplate = {
+        id: trimmedName,
+        name: trimmedName,
+        accounts,
+      }
+      const filteredTemplates = prevTemplates.filter(
+        (template) => template.name !== trimmedName,
+      )
+
+      return [nextTemplate, ...filteredTemplates].slice(0, 8)
+    })
+  }
+
+  const handleUseSettlementAccountTemplate = (template) => {
+    setSettlementAccounts(
+      template.accounts.map((account, index) => ({
+        id: Date.now() + index,
+        name: account.name,
+        bank: account.bank,
+        accountNumber: account.accountNumber,
+        amount: '',
+      })),
+    )
+  }
+
+  const saveSettlementRequestTemplate = () => {
+    const trimmedRequest = settlementRequest.trim()
+
+    if (!trimmedRequest) {
+      return
+    }
+
+    setSettlementRequestTemplates((prevTemplates) => [
+      trimmedRequest,
+      ...prevTemplates.filter((template) => template !== trimmedRequest),
+    ].slice(0, 8))
   }
 
   const renderHistoryScreen = () => {
@@ -394,7 +790,7 @@ function App() {
   }
 
   const renderExportScreen = () => {
-    const exportMonths = getAvailableHistoryMonths()
+    const exportMonths = getAvailableHistoryMonths(selectedExportMonth)
     const exportGroups = getCompanyGroupsForMonth(selectedExportMonth)
     const selectedCompanyGroups = selectedExportCompanyId
       ? exportGroups.filter((group) => group.companyId === selectedExportCompanyId)
@@ -439,6 +835,50 @@ function App() {
     )
   }
 
+  const renderSettlementScreen = () => {
+    const settlementLogs = getSettlementLogs(selectedSettlementMonth)
+    const settlementSummary = getSettlementSummary(
+      settlementLogs,
+      noteCategories,
+      settlementFixedDeduction,
+    )
+
+    return (
+      <SettlementScreen
+        months={getAvailableHistoryMonths(selectedSettlementMonth)}
+        selectedMonth={selectedSettlementMonth}
+        format={settlementFormat}
+        noteCategories={noteCategories}
+        summary={settlementSummary}
+        logsCount={settlementLogs.length}
+        step={settlementStep}
+        accounts={settlementAccounts}
+        accountTemplates={settlementAccountTemplates}
+        requestText={settlementRequest}
+        requestTemplates={settlementRequestTemplates}
+        onChangeMonth={setSelectedSettlementMonth}
+        onChangeFormat={setSettlementFormat}
+        onNext={() => setSettlementStep('accounts')}
+        onUpdateAccount={handleUpdateSettlementAccount}
+        onAddAccount={handleAddSettlementAccount}
+        onDeleteAccount={handleDeleteSettlementAccount}
+        onRegisterAccountTemplate={handleRegisterSettlementAccountTemplate}
+        onUseAccountTemplate={handleUseSettlementAccountTemplate}
+        onChangeRequestText={setSettlementRequest}
+        onUseRequestTemplate={setSettlementRequest}
+        onRunExport={runSettlementExport}
+        onBack={() => {
+          if (settlementStep === 'accounts') {
+            setSettlementStep('summary')
+            return
+          }
+
+          setScreen('home')
+        }}
+      />
+    )
+  }
+
   return (
     <main className="app-shell">
       <div className="phone-frame">
@@ -448,6 +888,7 @@ function App() {
             onInput={() => setScreen('input')}
             onHistory={openHistory}
             onExport={openExport}
+            onSettlement={openSettlement}
             onSettings={() => setIsSettingOpen(true)}
           />
         )}
@@ -455,23 +896,41 @@ function App() {
           <LogInputForm
             companies={companies}
             logs={logs}
+            noteCategories={noteCategories}
             onAddLog={handleAddLog}
             onBack={() => setScreen('home')}
           />
         )}
         {screen === 'history' && renderHistoryScreen()}
         {screen === 'export' && renderExportScreen()}
+        {screen === 'settlement' && renderSettlementScreen()}
       </div>
 
       {isSettingOpen && (
         <SettingsPanel
+          section={settingSection}
           companies={companies}
+          noteCategories={noteCategories}
+          fixedDeduction={settlementFixedDeduction}
           newCompanyName={newCompanyName}
-          onClose={() => setIsSettingOpen(false)}
+          newNoteCategoryName={newNoteCategoryName}
+          newNoteCategoryPrice={newNoteCategoryPrice}
+          onClose={() => {
+            setIsSettingOpen(false)
+            setSettingSection('menu')
+          }}
+          onChangeSection={setSettingSection}
           onChangeNewCompanyName={setNewCompanyName}
           onAddCompany={handleAddCompany}
           onRenameCompany={handleRenameCompany}
           onDeleteCompany={handleDeleteCompany}
+          onChangeNewNoteCategoryName={setNewNoteCategoryName}
+          onChangeNewNoteCategoryPrice={setNewNoteCategoryPrice}
+          onAddNoteCategory={handleAddNoteCategory}
+          onUpdateNoteCategory={handleUpdateNoteCategory}
+          onUpdateDefaultUnitPrice={handleUpdateDefaultUnitPrice}
+          onUpdateFixedDeduction={handleUpdateFixedDeduction}
+          onDeleteNoteCategory={handleDeleteNoteCategory}
         />
       )}
     </main>
