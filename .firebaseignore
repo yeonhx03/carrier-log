@@ -1,0 +1,10 @@
+node_modules
+android
+ios
+src
+public
+.env
+.env.*
+.git
+.github
+dist/**/*.map
