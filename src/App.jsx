@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import ExportScreen from './components/ExportScreen'
 import HistoryCompanyTable from './components/HistoryCompanyTable'
@@ -29,6 +29,11 @@ import {
   getSettlementFilename,
   getSettlementSummary,
 } from './utils/settlementFiles'
+import {
+  isFirebaseConfigured,
+  saveAppData,
+  subscribeAppData,
+} from './utils/cloudStore'
 
 const defaultSettlementAccounts = [
   { id: 1, name: '', bank: '', accountNumber: '', amount: '' },
@@ -140,8 +145,82 @@ function App() {
   const [settlementAccountTemplates, setSettlementAccountTemplates] = useState(
     getInitialSettlementAccountTemplates,
   )
+  const appDataRef = useRef({
+    companies,
+    noteCategories,
+    logs,
+    settlementAccounts,
+    settlementAccountTemplates,
+    settlementFixedDeduction,
+    settlementRequestTemplates,
+  })
+  const isApplyingCloudDataRef = useRef(false)
+  const isCloudReadyRef = useRef(!isFirebaseConfigured)
 
   const selectedLog = logs.find((log) => log.id === selectedLogId)
+
+  useEffect(() => {
+    appDataRef.current = {
+      companies,
+      noteCategories,
+      logs,
+      settlementAccounts,
+      settlementAccountTemplates,
+      settlementFixedDeduction,
+      settlementRequestTemplates,
+    }
+  }, [
+    companies,
+    noteCategories,
+    logs,
+    settlementAccounts,
+    settlementAccountTemplates,
+    settlementFixedDeduction,
+    settlementRequestTemplates,
+  ])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
+      return undefined
+    }
+
+    return subscribeAppData({
+      onData: (cloudData) => {
+        if (!cloudData) {
+          isCloudReadyRef.current = true
+          saveAppData(appDataRef.current).catch((error) => {
+            console.error('Firebase initial save failed', error)
+          })
+          return
+        }
+
+        isApplyingCloudDataRef.current = true
+        setCompanies(cloudData.companies || initialCompanies)
+        setNoteCategories(cloudData.noteCategories || initialNoteCategories)
+        setLogs(cloudData.logs || [])
+        setSettlementAccounts(
+          cloudData.settlementAccounts || defaultSettlementAccounts,
+        )
+        setSettlementAccountTemplates(
+          cloudData.settlementAccountTemplates || [],
+        )
+        setSettlementFixedDeduction(
+          Number(cloudData.settlementFixedDeduction || DEFAULT_FIXED_DEDUCTION),
+        )
+        setSettlementRequestTemplates(
+          cloudData.settlementRequestTemplates || [],
+        )
+        isCloudReadyRef.current = true
+        window.setTimeout(() => {
+          isApplyingCloudDataRef.current = false
+        }, 0)
+      },
+      onError: (error) => {
+        console.error('Firebase load failed', error)
+        isCloudReadyRef.current = true
+      },
+    })
+  }, [])
 
   useEffect(() => {
     window.localStorage.setItem('companies', JSON.stringify(companies))
@@ -185,6 +264,32 @@ function App() {
       JSON.stringify(settlementRequestTemplates),
     )
   }, [settlementRequestTemplates])
+
+  useEffect(() => {
+    if (
+      !isFirebaseConfigured ||
+      !isCloudReadyRef.current ||
+      isApplyingCloudDataRef.current
+    ) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      saveAppData(appDataRef.current).catch((error) => {
+        console.error('Firebase save failed', error)
+      })
+    }, 500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [
+    companies,
+    noteCategories,
+    logs,
+    settlementAccounts,
+    settlementAccountTemplates,
+    settlementFixedDeduction,
+    settlementRequestTemplates,
+  ])
 
   const getCompanyName = (companyId, fallbackName) => {
     return (
