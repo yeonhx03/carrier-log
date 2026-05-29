@@ -1,5 +1,7 @@
 export default function SettingsPanel({
   section,
+  currentUser,
+  isLocalOnlyMode,
   companies,
   noteCategories,
   fixedDeduction,
@@ -8,6 +10,8 @@ export default function SettingsPanel({
   newNoteCategoryPrice,
   onClose,
   onChangeSection,
+  onGoogleSignIn,
+  onSignOut,
   onChangeNewCompanyName,
   onAddCompany,
   onRenameCompany,
@@ -30,6 +34,27 @@ export default function SettingsPanel({
         <button type="button" onClick={onClose}>
           닫기
         </button>
+      </div>
+
+      <div className="setting-account-card">
+        <span>로그인 정보</span>
+        {currentUser ? (
+          <>
+            <strong>{currentUser.displayName || 'Google 사용자'}</strong>
+            <p>{currentUser.email}</p>
+            <button type="button" onClick={onSignOut}>
+              로그아웃
+            </button>
+          </>
+        ) : (
+          <>
+            <strong>{isLocalOnlyMode ? '로컬 저장 중' : '로그인 전'}</strong>
+            <p>기기 변경 시 데이터를 유지하려면 구글로 로그인하세요.</p>
+            <button type="button" onClick={onGoogleSignIn}>
+              Google 로그인
+            </button>
+          </>
+        )}
       </div>
 
       <div className="setting-menu">

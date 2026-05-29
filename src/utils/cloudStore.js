@@ -1,12 +1,17 @@
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase'
 
-const ownerId = import.meta.env.VITE_FIREBASE_OWNER_ID || 'default'
-const appDataRef = db ? doc(db, 'carrierLogData', ownerId) : null
-
 export { isFirebaseConfigured }
 
-export function subscribeAppData({ onData, onError }) {
+function getAppDataRef(userId) {
+  return db && userId
+    ? doc(db, 'carrierLogUsers', userId, 'documents', 'appData')
+    : null
+}
+
+export function subscribeAppData({ userId, onData, onError }) {
+  const appDataRef = getAppDataRef(userId)
+
   if (!appDataRef) {
     return () => {}
   }
@@ -20,7 +25,9 @@ export function subscribeAppData({ onData, onError }) {
   )
 }
 
-export function saveAppData(data) {
+export function saveAppData(userId, data) {
+  const appDataRef = getAppDataRef(userId)
+
   if (!appDataRef) {
     return Promise.resolve()
   }

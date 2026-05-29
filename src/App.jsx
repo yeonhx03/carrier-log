@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth'
 import './App.css'
+import AuthScreen from './components/AuthScreen'
 import ExportScreen from './components/ExportScreen'
 import HistoryCompanyTable from './components/HistoryCompanyTable'
 import HistoryScreen from './components/HistoryScreen'
@@ -34,6 +41,7 @@ import {
   saveAppData,
   subscribeAppData,
 } from './utils/cloudStore'
+import { auth } from './firebase'
 
 const defaultSettlementAccounts = [
   { id: 1, name: '', bank: '', accountNumber: '', amount: '' },
@@ -145,6 +153,12 @@ function App() {
   const [settlementAccountTemplates, setSettlementAccountTemplates] = useState(
     getInitialSettlementAccountTemplates,
   )
+  const [isLocalOnlyMode, setIsLocalOnlyMode] = useState(() =>
+    getInitialStoredValue('isLocalOnlyMode', false),
+  )
+  const [isAuthLoading, setIsAuthLoading] = useState(isFirebaseConfigured)
+  const [authErrorMessage, setAuthErrorMessage] = useState('')
+  const [firebaseUser, setFirebaseUser] = useState(null)
   const appDataRef = useRef({
     companies,
     noteCategories,
@@ -158,6 +172,7 @@ function App() {
   const isCloudReadyRef = useRef(!isFirebaseConfigured)
 
   const selectedLog = logs.find((log) => log.id === selectedLogId)
+  const firebaseUserId = firebaseUser?.uid || ''
 
   useEffect(() => {
     appDataRef.current = {
@@ -184,11 +199,35 @@ function App() {
       return undefined
     }
 
+    if (!auth) {
+      return undefined
+    }
+
+    return onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user)
+      setIsAuthLoading(false)
+      isCloudReadyRef.current = Boolean(user)
+
+      if (user) {
+        setIsLocalOnlyMode(false)
+        setAuthErrorMessage('')
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !firebaseUserId) {
+      return undefined
+    }
+
+    isCloudReadyRef.current = false
+
     return subscribeAppData({
+      userId: firebaseUserId,
       onData: (cloudData) => {
         if (!cloudData) {
           isCloudReadyRef.current = true
-          saveAppData(appDataRef.current).catch((error) => {
+          saveAppData(firebaseUserId, appDataRef.current).catch((error) => {
             console.error('Firebase initial save failed', error)
           })
           return
@@ -220,7 +259,14 @@ function App() {
         isCloudReadyRef.current = true
       },
     })
-  }, [])
+  }, [firebaseUserId])
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      'isLocalOnlyMode',
+      JSON.stringify(isLocalOnlyMode),
+    )
+  }, [isLocalOnlyMode])
 
   useEffect(() => {
     window.localStorage.setItem('companies', JSON.stringify(companies))
@@ -268,6 +314,7 @@ function App() {
   useEffect(() => {
     if (
       !isFirebaseConfigured ||
+      !firebaseUserId ||
       !isCloudReadyRef.current ||
       isApplyingCloudDataRef.current
     ) {
@@ -275,7 +322,7 @@ function App() {
     }
 
     const timeoutId = window.setTimeout(() => {
-      saveAppData(appDataRef.current).catch((error) => {
+      saveAppData(firebaseUserId, appDataRef.current).catch((error) => {
         console.error('Firebase save failed', error)
       })
     }, 500)
@@ -289,6 +336,7 @@ function App() {
     settlementAccountTemplates,
     settlementFixedDeduction,
     settlementRequestTemplates,
+    firebaseUserId,
   ])
 
   const getCompanyName = (companyId, fallbackName) => {
@@ -821,6 +869,48 @@ function App() {
     ].slice(0, 8))
   }
 
+  const handleGoogleSignIn = () => {
+    if (!auth) {
+      setAuthErrorMessage('Firebase 설정을 확인해주세요.')
+      return
+    }
+
+    const provider = new GoogleAuthProvider()
+
+    setIsAuthLoading(true)
+    setAuthErrorMessage('')
+
+    signInWithPopup(auth, provider)
+      .catch((error) => {
+        console.error('Google sign in failed', error)
+        setAuthErrorMessage('구글 로그인에 실패했습니다. 다시 시도해주세요.')
+      })
+      .finally(() => {
+        setIsAuthLoading(false)
+      })
+  }
+
+  const handleStartLocalOnly = () => {
+    setIsLocalOnlyMode(true)
+    setAuthErrorMessage('')
+  }
+
+  const handleSignOut = () => {
+    if (!auth) {
+      return
+    }
+
+    signOut(auth)
+      .then(() => {
+        setIsLocalOnlyMode(true)
+        setIsSettingOpen(false)
+        setSettingSection('menu')
+      })
+      .catch((error) => {
+        console.error('Google sign out failed', error)
+      })
+  }
+
   const renderHistoryScreen = () => {
     const historyGroups = getHistoryGroups()
 
@@ -987,33 +1077,47 @@ function App() {
   return (
     <main className="app-shell">
       <div className="phone-frame">
-        {screen === 'home' && (
-          <HomeScreen
-            logsCount={logs.length}
-            onInput={() => setScreen('input')}
-            onHistory={openHistory}
-            onExport={openExport}
-            onSettlement={openSettlement}
-            onSettings={() => setIsSettingOpen(true)}
+        {isFirebaseConfigured && !firebaseUser && !isLocalOnlyMode && (
+          <AuthScreen
+            errorMessage={authErrorMessage}
+            isLoading={isAuthLoading}
+            onGoogleSignIn={handleGoogleSignIn}
+            onStartLocalOnly={handleStartLocalOnly}
           />
         )}
-        {screen === 'input' && (
-          <LogInputForm
-            companies={companies}
-            logs={logs}
-            noteCategories={noteCategories}
-            onAddLog={handleAddLog}
-            onBack={() => setScreen('home')}
-          />
+        {(!isFirebaseConfigured || firebaseUser || isLocalOnlyMode) && (
+          <>
+            {screen === 'home' && (
+              <HomeScreen
+                logsCount={logs.length}
+                onInput={() => setScreen('input')}
+                onHistory={openHistory}
+                onExport={openExport}
+                onSettlement={openSettlement}
+                onSettings={() => setIsSettingOpen(true)}
+              />
+            )}
+            {screen === 'input' && (
+              <LogInputForm
+                companies={companies}
+                logs={logs}
+                noteCategories={noteCategories}
+                onAddLog={handleAddLog}
+                onBack={() => setScreen('home')}
+              />
+            )}
+            {screen === 'history' && renderHistoryScreen()}
+            {screen === 'export' && renderExportScreen()}
+            {screen === 'settlement' && renderSettlementScreen()}
+          </>
         )}
-        {screen === 'history' && renderHistoryScreen()}
-        {screen === 'export' && renderExportScreen()}
-        {screen === 'settlement' && renderSettlementScreen()}
       </div>
 
       {isSettingOpen && (
         <SettingsPanel
           section={settingSection}
+          currentUser={firebaseUser}
+          isLocalOnlyMode={isLocalOnlyMode}
           companies={companies}
           noteCategories={noteCategories}
           fixedDeduction={settlementFixedDeduction}
@@ -1025,6 +1129,8 @@ function App() {
             setSettingSection('menu')
           }}
           onChangeSection={setSettingSection}
+          onGoogleSignIn={handleGoogleSignIn}
+          onSignOut={handleSignOut}
           onChangeNewCompanyName={setNewCompanyName}
           onAddCompany={handleAddCompany}
           onRenameCompany={handleRenameCompany}
