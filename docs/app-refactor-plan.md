@@ -14,9 +14,39 @@ Split by state ownership and side-effect boundary, not by line count.
 - Pure data transformation belongs in selector utilities.
 - Existing screen components remain presentation-focused.
 - `App.jsx` owns only top-level navigation, modal visibility, and composition.
+- File size is a secondary guardrail. Do not replace one large `App.jsx` with
+  a few equally large hooks.
 - Do not introduce React Context until prop drilling remains a real problem
   after the hooks are extracted.
 - Do not change storage schemas or rename persisted keys during this refactor.
+
+## File Size Guardrails
+
+Use responsibility boundaries first, then review the resulting file sizes.
+
+- Presentation component: target 200 lines or fewer
+- Custom hook: target 250 lines or fewer
+- Pure utility or selector file: target 200 lines or fewer
+- Any file over 300 lines requires an explicit second-split review
+- `App.jsx`: target approximately 250 to 400 lines
+
+These are review thresholds, not reasons to create artificial one-function
+files. A file may exceed a target only when splitting it would obscure a single
+cohesive responsibility.
+
+If a domain hook grows too large, split it again by its internal responsibility:
+
+- Large `useAppData`:
+  - localStorage helpers in `appDataStorage.js`
+  - Firestore synchronization in `useCloudAppData.js`
+  - defaults and normalization in `appDataDefaults.js`
+- Large `useSettlementController`:
+  - account-list behavior in `useSettlementAccounts.js`
+  - request behavior in `useSettlementRequests.js`
+  - file generation orchestration in `useSettlementExport.js`
+- Large `useHistoryController`:
+  - search and grouping selectors remain outside React hooks
+  - log mutation behavior may move to `useLogActions.js`
 
 ## Target Structure
 
@@ -138,6 +168,9 @@ After refactoring, `App.jsx` should:
 - render `SettingsPanel`
 
 Target size: approximately 250 to 400 lines.
+
+After all extractions, review every new file against the file size guardrails
+before considering the refactor complete.
 
 ## Execution Order
 
