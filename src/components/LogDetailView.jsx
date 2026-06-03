@@ -1,4 +1,10 @@
-export default function LogDetailView({ log, companyName, onBack }) {
+export default function LogDetailView({
+  log,
+  companyName,
+  onBack,
+  onEdit,
+  onDelete,
+}) {
   return (
     <section className="phone-screen input-screen log-detail-screen">
       <header className="screen-header input-header">
@@ -33,6 +39,18 @@ export default function LogDetailView({ log, companyName, onBack }) {
         <button type="button" onClick={onBack} className="small-back-button">
           뒤로
         </button>
+        <div className="detail-action-buttons">
+          <button type="button" onClick={onEdit} className="small-edit-button">
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="small-delete-button"
+          >
+            삭제
+          </button>
+        </div>
       </div>
     </section>
   )

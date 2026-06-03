@@ -19,7 +19,9 @@ export default function HomeScreen({
           <strong>새 운행 기록</strong>
         </button>
         <button type="button" onClick={onHistory} className="home-action-button action-history">
-          <span>내역 보기</span>
+          <span>
+            내역 <small>보기/수정/삭제</small>
+          </span>
           <strong>{logsCount}건</strong>
         </button>
         <button type="button" onClick={onExport} className="home-action-button action-export">

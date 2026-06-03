@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
+import { Capacitor } from '@capacitor/core'
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithCredential,
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
@@ -26,9 +29,9 @@ import {
 import {
   buildExcelWorkbook,
   buildPrintHtml,
-  downloadBlob,
   getExportFilename,
 } from './utils/exportFiles'
+import { printHtmlDocument, saveOrShareFile } from './utils/nativeExport'
 import {
   buildSettlementExcel,
   buildSettlementPrintHtml,
@@ -113,9 +116,7 @@ function App() {
   const [noteCategories, setNoteCategories] = useState(() =>
     getInitialStoredValue('noteCategories', initialNoteCategories),
   )
-  const [logs, setLogs] = useState(() =>
-    getInitialStoredValue('logs', []),
-  )
+  const [logs, setLogs] = useState(() => getInitialStoredValue('logs', []))
   const [isHistorySearchOpen, setIsHistorySearchOpen] = useState(false)
   const [historySearchType, setHistorySearchType] = useState('date')
   const [historySearch, setHistorySearch] = useState('')
@@ -125,6 +126,7 @@ function App() {
   const [selectedHistoryCompanyId, setSelectedHistoryCompanyId] =
     useState(null)
   const [selectedLogId, setSelectedLogId] = useState(null)
+  const [isEditingLog, setIsEditingLog] = useState(false)
   const [exportStep, setExportStep] = useState('month')
   const [selectedExportMonth, setSelectedExportMonth] =
     useState(getCurrentMonthKey)
@@ -406,7 +408,7 @@ function App() {
     })
   }
 
-  const runExport = () => {
+  const runExport = async (mode = 'save') => {
     if (exportMode === 'company' && !selectedExportCompanyId) {
       alert('내보낼 보험사를 선택해주세요.')
       return
@@ -422,26 +424,25 @@ function App() {
       return
     }
 
-    if (exportFormat === 'excel') {
-      downloadBlob(
-        buildExcelWorkbook(selectedExportMonth, groups),
-        getExportFilename(selectedExportMonth, groups, 'xls'),
-        'application/vnd.ms-excel;charset=utf-8',
+    try {
+      if (exportFormat === 'excel') {
+        await saveOrShareFile(
+          buildExcelWorkbook(selectedExportMonth, groups),
+          getExportFilename(selectedExportMonth, groups, 'xls'),
+          'application/vnd.ms-excel;charset=utf-8',
+          mode,
+        )
+        return
+      }
+
+      await printHtmlDocument(
+        buildPrintHtml(selectedExportMonth, groups),
+        getExportFilename(selectedExportMonth, groups, 'pdf'),
       )
-      return
+    } catch (error) {
+      console.error('Export failed', error)
+      alert(error.message || '파일을 만들 수 없습니다.')
     }
-
-    const printWindow = window.open('', '_blank')
-
-    if (!printWindow) {
-      alert('팝업이 차단되어 PDF 화면을 열 수 없습니다.')
-      return
-    }
-
-    printWindow.document.write(buildPrintHtml(selectedExportMonth, groups))
-    printWindow.document.close()
-    printWindow.focus()
-    setTimeout(() => printWindow.print(), 250)
   }
 
   const getHistoryGroups = () => {
@@ -546,6 +547,23 @@ function App() {
     setScreen('home')
   }
 
+  const handleUpdateLog = (logId, nextLog) => {
+    setLogs((prevLogs) =>
+      prevLogs.map((log) => (log.id === logId ? { ...log, ...nextLog } : log)),
+    )
+    setIsEditingLog(false)
+  }
+
+  const handleDeleteLog = (logId) => {
+    if (!window.confirm('이 운행 내역을 삭제하시겠습니까?')) {
+      return
+    }
+
+    setLogs((prevLogs) => prevLogs.filter((log) => log.id !== logId))
+    setSelectedLogId(null)
+    setIsEditingLog(false)
+  }
+
   const openHistory = () => {
     setIsHistorySearchOpen(false)
     setHistorySearch('')
@@ -553,6 +571,7 @@ function App() {
     setSelectedHistoryGroupKey(null)
     setSelectedHistoryCompanyId(null)
     setSelectedLogId(null)
+    setIsEditingLog(false)
     setScreen('history')
   }
 
@@ -583,7 +602,7 @@ function App() {
       }))
   }
 
-  const runSettlementExport = () => {
+  const runSettlementExport = async (mode = 'save') => {
     const targetLogs = getSettlementLogs(selectedSettlementMonth)
 
     if (targetLogs.length === 0) {
@@ -591,10 +610,28 @@ function App() {
       return
     }
 
-    if (settlementFormat === 'excel') {
+    try {
       saveSettlementRequestTemplate()
-      downloadBlob(
-        buildSettlementExcel(
+
+      if (settlementFormat === 'excel') {
+        await saveOrShareFile(
+          buildSettlementExcel(
+            selectedSettlementMonth,
+            targetLogs,
+            noteCategories,
+            settlementFixedDeduction,
+            settlementAccounts,
+            settlementRequest,
+          ),
+          getSettlementFilename(selectedSettlementMonth, 'xls'),
+          'application/vnd.ms-excel;charset=utf-8',
+          mode,
+        )
+        return
+      }
+
+      await printHtmlDocument(
+        buildSettlementPrintHtml(
           selectedSettlementMonth,
           targetLogs,
           noteCategories,
@@ -602,33 +639,12 @@ function App() {
           settlementAccounts,
           settlementRequest,
         ),
-        getSettlementFilename(selectedSettlementMonth, 'xls'),
-        'application/vnd.ms-excel;charset=utf-8',
+        getSettlementFilename(selectedSettlementMonth, 'pdf'),
       )
-      return
+    } catch (error) {
+      console.error('Settlement export failed', error)
+      alert(error.message || '파일을 만들 수 없습니다.')
     }
-
-    const printWindow = window.open('', '_blank')
-
-    if (!printWindow) {
-      alert('팝업이 차단되어 PDF 화면을 열 수 없습니다.')
-      return
-    }
-
-    printWindow.document.write(
-      buildSettlementPrintHtml(
-        selectedSettlementMonth,
-        targetLogs,
-        noteCategories,
-        settlementFixedDeduction,
-        settlementAccounts,
-        settlementRequest,
-      ),
-    )
-    printWindow.document.close()
-    printWindow.focus()
-    saveSettlementRequestTemplate()
-    setTimeout(() => printWindow.print(), 250)
   }
 
   const handleAddCompany = () => {
@@ -804,8 +820,8 @@ function App() {
     })
   }
 
-  const handleRegisterSettlementAccountTemplate = (templateName) => {
-    const trimmedName = templateName.trim()
+  const handleSaveSettlementAccountList = (listId, listName) => {
+    const trimmedName = listName.trim()
     const accounts = settlementAccounts
       .filter((account) => {
         return (
@@ -821,27 +837,30 @@ function App() {
       }))
 
     if (!trimmedName) {
-      alert('템플릿 이름을 입력해주세요.')
-      return
+      alert('계좌 목록 이름을 입력해주세요.')
+      return false
     }
 
     if (accounts.length === 0) {
       alert('저장할 계좌 정보를 입력해주세요.')
-      return
+      return false
     }
 
     setSettlementAccountTemplates((prevTemplates) => {
       const nextTemplate = {
-        id: trimmedName,
+        id: listId || String(Date.now()),
         name: trimmedName,
         accounts,
       }
       const filteredTemplates = prevTemplates.filter(
-        (template) => template.name !== trimmedName,
+        (template) =>
+          template.id !== listId && template.name !== trimmedName,
       )
 
       return [nextTemplate, ...filteredTemplates].slice(0, 8)
     })
+
+    return true
   }
 
   const handleUseSettlementAccountTemplate = (template) => {
@@ -854,6 +873,10 @@ function App() {
         amount: '',
       })),
     )
+  }
+
+  const handleStartNewSettlementAccountList = () => {
+    setSettlementAccounts(defaultSettlementAccounts)
   }
 
   const saveSettlementRequestTemplate = () => {
@@ -880,7 +903,24 @@ function App() {
     setIsAuthLoading(true)
     setAuthErrorMessage('')
 
-    signInWithPopup(auth, provider)
+    const signInPromise = Capacitor.isNativePlatform()
+      ? FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true }).then(
+          (result) => {
+            const idToken = result.credential?.idToken
+
+            if (!idToken) {
+              throw new Error('Google ID token was not returned.')
+            }
+
+            return signInWithCredential(
+              auth,
+              GoogleAuthProvider.credential(idToken),
+            )
+          },
+        )
+      : signInWithPopup(auth, provider)
+
+    signInPromise
       .catch((error) => {
         console.error('Google sign in failed', error)
         setAuthErrorMessage('구글 로그인에 실패했습니다. 다시 시도해주세요.')
@@ -900,7 +940,12 @@ function App() {
       return
     }
 
-    signOut(auth)
+    const nativeSignOutPromise = Capacitor.isNativePlatform()
+      ? FirebaseAuthentication.signOut()
+      : Promise.resolve()
+
+    nativeSignOutPromise
+      .then(() => signOut(auth))
       .then(() => {
         setIsLocalOnlyMode(true)
         setIsSettingOpen(false)
@@ -915,11 +960,29 @@ function App() {
     const historyGroups = getHistoryGroups()
 
     if (selectedLog) {
+      if (isEditingLog) {
+        return (
+          <LogInputForm
+            companies={companies}
+            logs={logs}
+            noteCategories={noteCategories}
+            initialLog={selectedLog}
+            onUpdateLog={handleUpdateLog}
+            onBack={() => setIsEditingLog(false)}
+          />
+        )
+      }
+
       return (
         <LogDetailView
           log={selectedLog}
           companyName={getCompanyName(selectedLog.companyId, selectedLog.companyName)}
-          onBack={() => setSelectedLogId(null)}
+          onBack={() => {
+            setSelectedLogId(null)
+            setIsEditingLog(false)
+          }}
+          onEdit={() => setIsEditingLog(true)}
+          onDelete={() => handleDeleteLog(selectedLog.id)}
         />
       )
     }
@@ -937,10 +1000,14 @@ function App() {
           <HistoryCompanyTable
             monthGroup={monthGroup}
             companyGroup={companyGroup}
-            onSelectLog={setSelectedLogId}
+            onSelectLog={(logId) => {
+              setSelectedLogId(logId)
+              setIsEditingLog(false)
+            }}
             onBack={() => {
               setSelectedHistoryGroupKey(null)
               setSelectedHistoryCompanyId(null)
+              setIsEditingLog(false)
             }}
           />
         )
@@ -962,18 +1029,21 @@ function App() {
           setSelectedHistoryGroupKey(null)
           setSelectedHistoryCompanyId(null)
           setSelectedLogId(null)
+          setIsEditingLog(false)
         }}
         onChangeSearchValue={(value) => {
           setHistorySearch(value)
           setSelectedHistoryGroupKey(null)
           setSelectedHistoryCompanyId(null)
           setSelectedLogId(null)
+          setIsEditingLog(false)
         }}
         onChangeMonth={(monthKey) => {
           setSelectedHistoryMonth(monthKey)
           setSelectedHistoryGroupKey(null)
           setSelectedHistoryCompanyId(null)
           setSelectedLogId(null)
+          setIsEditingLog(false)
         }}
         onSelectCompany={(groupKey, companyId) => {
           setSelectedHistoryGroupKey(groupKey)
@@ -1057,8 +1127,9 @@ function App() {
         onUpdateAccount={handleUpdateSettlementAccount}
         onAddAccount={handleAddSettlementAccount}
         onDeleteAccount={handleDeleteSettlementAccount}
-        onRegisterAccountTemplate={handleRegisterSettlementAccountTemplate}
+        onSaveAccountList={handleSaveSettlementAccountList}
         onUseAccountTemplate={handleUseSettlementAccountTemplate}
+        onStartNewAccountList={handleStartNewSettlementAccountList}
         onChangeRequestText={setSettlementRequest}
         onUseRequestTemplate={setSettlementRequest}
         onRunExport={runSettlementExport}

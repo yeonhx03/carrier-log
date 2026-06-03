@@ -28,6 +28,14 @@ export default function HistoryCompanyTable({
 
         <div className="history-table-wrap">
           <table>
+            <colgroup>
+              <col className="history-col-number" />
+              <col className="history-col-date" />
+              <col className="history-col-car-type" />
+              <col className="history-col-car-number" />
+              <col className="history-col-km" />
+              <col className="history-col-note" />
+            </colgroup>
             <thead>
               <tr>
                 <th>NO</th>

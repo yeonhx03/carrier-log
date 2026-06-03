@@ -1,5 +1,13 @@
 {
   "appId": "com.yeonhx03.carrierlog",
   "appName": "Carrier Log",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": [
+        "google.com"
+      ]
+    }
+  }
 }

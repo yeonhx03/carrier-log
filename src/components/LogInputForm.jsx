@@ -25,18 +25,25 @@ export default function LogInputForm({
   logs = [],
   noteCategories,
   onAddLog,
+  onUpdateLog,
+  initialLog = null,
   onBack,
 }) {
   const today = useMemo(() => getTodayValue(), [])
+  const isEditMode = Boolean(initialLog)
 
-  const [selectedCompanyId, setSelectedCompanyId] = useState('')
-  const [date, setDate] = useState(today)
-  const [carType, setCarType] = useState('')
+  const [selectedCompanyId, setSelectedCompanyId] = useState(
+    initialLog?.companyId || '',
+  )
+  const [date, setDate] = useState(initialLog?.date || today)
+  const [carType, setCarType] = useState(initialLog?.carType || '')
   const [isCarTypeSuggestionsOpen, setIsCarTypeSuggestionsOpen] =
     useState(false)
-  const [carNumber, setCarNumber] = useState('')
-  const [extraKm, setExtraKm] = useState('')
-  const [note, setNote] = useState('')
+  const [carNumber, setCarNumber] = useState(initialLog?.carNumber || '')
+  const [extraKm, setExtraKm] = useState(
+    initialLog ? String(initialLog.extraKm ?? '') : '',
+  )
+  const [note, setNote] = useState(initialLog?.note || '')
 
   const selectedCompany = companies.find(
     (company) => company.id === selectedCompanyId,
@@ -83,6 +90,11 @@ export default function LogInputForm({
   }
 
   const handleBack = () => {
+    if (isEditMode) {
+      onBack()
+      return
+    }
+
     if (selectedCompany) {
       resetFields()
       setSelectedCompanyId('')
@@ -108,7 +120,7 @@ export default function LogInputForm({
 
     const dateParts = parseDateParts(date)
 
-    onAddLog({
+    const nextLog = {
       date,
       dateText: dateParts.dateText,
       year: dateParts.year,
@@ -121,7 +133,14 @@ export default function LogInputForm({
       carNumber: carNumber.trim(),
       extraKm: Number(extraKm || 0),
       note: note.trim(),
-    })
+    }
+
+    if (isEditMode) {
+      onUpdateLog(initialLog.id, nextLog)
+      return
+    }
+
+    onAddLog(nextLog)
 
     resetFields()
     setSelectedCompanyId('')
@@ -158,7 +177,7 @@ export default function LogInputForm({
   return (
     <form onSubmit={handleSubmit} className="phone-screen input-screen">
       <header className="screen-header input-header">
-        <p>운행 입력</p>
+        <p>{isEditMode ? '운행 수정' : '운행 입력'}</p>
         <h1 className="screen-title selected-company-title">
           {selectedCompany.name}
         </h1>
@@ -264,7 +283,7 @@ export default function LogInputForm({
           뒤로
         </button>
         <button type="submit" className="small-save-button">
-          저장
+          {isEditMode ? '수정 완료' : '저장'}
         </button>
       </div>
     </form>

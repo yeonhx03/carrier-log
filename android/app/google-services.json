@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "635352464620",
+    "project_id": "carrier-log-bf461",
+    "storage_bucket": "carrier-log-bf461.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635352464620:android:9a7740c07a7bccc48eb9c9",
+        "android_client_info": {
+          "package_name": "com.yeonhx03.carrierlog"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "635352464620-03q1av927t62not4tr4qa8guiadasntg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yeonhx03.carrierlog",
+            "certificate_hash": "53dd7e3390f359d241dc01314a5e91862701c200"
+          }
+        },
+        {
+          "client_id": "635352464620-df67tbpf6t5m24st5mfvc3b8v08tip8j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3AOcMFG68ms8glzxNB1zO9MNnFvET2ow"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "635352464620-df67tbpf6t5m24st5mfvc3b8v08tip8j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -261,6 +261,14 @@ button {
   line-height: 1;
 }
 
+.home-action-button span small {
+  color: rgba(17, 24, 39, 0.58);
+  font-size: 13px;
+  font-weight: 900;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .home-action-button strong {
   background: rgba(255, 255, 255, 0.7);
   border-radius: 999px;
@@ -293,6 +301,8 @@ button {
 .company-choice-button:active,
 .small-back-button:active,
 .small-save-button:active,
+.small-edit-button:active,
+.small-delete-button:active,
 .settings-fab:active {
   transform: scale(0.98);
 }
@@ -378,6 +388,8 @@ button {
 
 .small-back-button,
 .small-save-button,
+.small-edit-button,
+.small-delete-button,
 .small-search-button {
   border-radius: 18px;
   color: #ffffff;
@@ -396,6 +408,16 @@ button {
 .small-save-button {
   background: var(--mint-dark);
   box-shadow: 0 10px 22px rgba(15, 143, 127, 0.28);
+}
+
+.small-edit-button {
+  background: #2563eb;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
+}
+
+.small-delete-button {
+  background: #dc2626;
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.2);
 }
 
 .small-search-button {
@@ -637,6 +659,22 @@ button {
   box-shadow: 0 10px 24px rgba(15, 143, 127, 0.24);
   color: #ffffff;
   font-size: 22px;
+  font-weight: 950;
+  min-height: 74px;
+}
+
+.export-create-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 104px;
+}
+
+.export-share-button {
+  background: #475569;
+  border-radius: 22px;
+  box-shadow: 0 10px 24px rgba(71, 85, 105, 0.2);
+  color: #ffffff;
+  font-size: 19px;
   font-weight: 950;
   min-height: 74px;
 }
@@ -900,6 +938,26 @@ button {
   gap: 10px;
 }
 
+.settlement-account-edit-head {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.settlement-account-edit-head strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.settlement-account-edit-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .settlement-account-mode {
   background: #f1f5f9;
   border-radius: 16px;
@@ -927,24 +985,29 @@ button {
 
 .settlement-account-templates {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;
-  overflow-x: auto;
   padding-bottom: 2px;
 }
 
-.settlement-account-templates button {
+.settlement-account-template {
   background: #f1f5f9;
   border: 2px solid #e2e8f0;
   border-radius: 16px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 58px;
+  min-height: 54px;
+  padding: 6px;
+}
+
+.settlement-account-template > button:first-child {
   color: var(--ink);
   display: flex;
-  flex: 0 0 auto;
   flex-direction: column;
   gap: 2px;
-  min-height: 54px;
-  min-width: 92px;
-  padding: 8px 12px;
+  padding: 4px 6px;
   text-align: left;
 }
 
@@ -957,6 +1020,14 @@ button {
   color: var(--muted);
   font-size: 12px;
   font-weight: 900;
+}
+
+.settlement-account-template-edit {
+  background: #ffffff;
+  border-radius: 12px;
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 950;
 }
 
 .settlement-account-empty {
@@ -1025,7 +1096,7 @@ button {
   border-top: 2px solid #eef2f7;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 84px 58px;
+  grid-template-columns: minmax(0, 1fr) 92px;
   margin-top: 12px;
   padding-top: 12px;
 }
@@ -1367,13 +1438,13 @@ button {
 }
 
 .history-table-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
   padding: 0;
 }
 
 .history-table-wrap table {
   border-collapse: collapse;
-  min-width: 620px;
+  table-layout: fixed;
   width: 100%;
 }
 
@@ -1382,18 +1453,18 @@ button {
   border-bottom: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 850;
   height: 42px;
-  padding: 0 10px;
+  padding: 4px 3px;
   text-align: center;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .history-table-wrap th {
   background: #f8fafc;
   color: #475569;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 950;
 }
 
@@ -1407,34 +1478,28 @@ button {
   text-align: left;
 }
 
-.history-table-wrap td:nth-child(1),
-.history-table-wrap th:nth-child(1) {
-  min-width: 40px;
+.history-col-number {
+  width: 8%;
 }
 
-.history-table-wrap td:nth-child(2),
-.history-table-wrap th:nth-child(2) {
-  min-width: 86px;
+.history-col-date {
+  width: 18%;
 }
 
-.history-table-wrap td:nth-child(3),
-.history-table-wrap th:nth-child(3) {
-  min-width: 110px;
+.history-col-car-type {
+  width: 20%;
 }
 
-.history-table-wrap td:nth-child(4),
-.history-table-wrap th:nth-child(4) {
-  min-width: 82px;
+.history-col-car-number {
+  width: 18%;
 }
 
-.history-table-wrap td:nth-child(5),
-.history-table-wrap th:nth-child(5) {
-  min-width: 58px;
+.history-col-km {
+  width: 11%;
 }
 
-.history-table-wrap td:nth-child(6),
-.history-table-wrap th:nth-child(6) {
-  min-width: 130px;
+.history-col-note {
+  width: 25%;
 }
 
 .history-select-row {
@@ -1464,7 +1529,12 @@ button {
 }
 
 .log-detail-screen .bottom-actions {
-  justify-content: flex-start;
+  justify-content: space-between;
+}
+
+.detail-action-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .readonly-field strong {

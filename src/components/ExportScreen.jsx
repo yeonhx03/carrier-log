@@ -122,9 +122,32 @@ export default function ExportScreen({
             </span>
           </div>
 
-          <button type="button" onClick={onRunExport} className="export-next-button">
-            파일 만들기
-          </button>
+          {exportFormat === 'excel' ? (
+            <div className="export-create-actions">
+              <button
+                type="button"
+                onClick={() => onRunExport('save')}
+                className="export-next-button"
+              >
+                기기에 저장
+              </button>
+              <button
+                type="button"
+                onClick={() => onRunExport('share')}
+                className="export-share-button"
+              >
+                공유
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onRunExport('save')}
+              className="export-next-button"
+            >
+              PDF로 저장
+            </button>
+          )}
         </div>
       )}
 

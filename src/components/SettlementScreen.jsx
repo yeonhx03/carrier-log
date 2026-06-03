@@ -23,16 +23,18 @@ export default function SettlementScreen({
   onUpdateAccount,
   onAddAccount,
   onDeleteAccount,
-  onRegisterAccountTemplate,
+  onSaveAccountList,
   onUseAccountTemplate,
+  onStartNewAccountList,
   onChangeRequestText,
   onUseRequestTemplate,
   onRunExport,
   onBack,
 }) {
   const [isRateOpen, setIsRateOpen] = useState(false)
-  const [accountMode, setAccountMode] = useState('template')
-  const [templateName, setTemplateName] = useState('')
+  const [accountMode, setAccountMode] = useState('saved')
+  const [accountListName, setAccountListName] = useState('')
+  const [editingAccountListId, setEditingAccountListId] = useState('')
   const rateGroups = noteCategories
     .filter((category) => category.value)
     .reduce((groups, category) => {
@@ -154,48 +156,76 @@ export default function SettlementScreen({
               <div className="settlement-account-mode">
                 <button
                   type="button"
-                  onClick={() => setAccountMode('template')}
-                  className={accountMode === 'template' ? 'is-selected' : ''}
+                  onClick={() => setAccountMode('saved')}
+                  className={accountMode === 'saved' ? 'is-selected' : ''}
                 >
-                  템플릿 불러오기
+                  기존 계좌 불러오기
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAccountMode('manual')}
-                  className={accountMode === 'manual' ? 'is-selected' : ''}
+                  onClick={() => {
+                    onStartNewAccountList()
+                    setEditingAccountListId('')
+                    setAccountListName('')
+                    setAccountMode('new')
+                  }}
+                  className={accountMode === 'new' ? 'is-selected' : ''}
                 >
-                  신규 입력
+                  계좌 목록 신규 등록
                 </button>
               </div>
 
-              {accountMode === 'template' && (
+              {accountMode === 'saved' && (
                 <>
                   {accountTemplates.length > 0 ? (
                     <div className="settlement-account-templates">
                       {accountTemplates.map((template) => (
-                        <button
-                          key={template.id}
-                          type="button"
-                          onClick={() => {
-                            onUseAccountTemplate(template)
-                            setAccountMode('manual')
-                          }}
-                        >
-                          <strong>{template.name}</strong>
-                          <span>{template.accounts.length}개 계좌</span>
-                        </button>
+                        <div key={template.id} className="settlement-account-template">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onUseAccountTemplate(template)
+                              setEditingAccountListId('')
+                              setAccountListName('')
+                              setAccountMode('use')
+                            }}
+                          >
+                            <strong>{template.name}</strong>
+                            <span>{template.accounts.length}개 계좌</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="settlement-account-template-edit"
+                            onClick={() => {
+                              onUseAccountTemplate(template)
+                              setEditingAccountListId(template.id)
+                              setAccountListName(template.name)
+                              setAccountMode('edit')
+                            }}
+                          >
+                            수정
+                          </button>
+                        </div>
                       ))}
                     </div>
                   ) : (
                     <p className="settlement-account-empty">
-                      저장된 계좌 템플릿이 없습니다.
+                      저장된 계좌 목록이 없습니다.
                     </p>
                   )}
                 </>
               )}
 
-              {accountMode === 'manual' && (
+              {['use', 'new', 'edit'].includes(accountMode) && (
                 <>
+                  <div className="settlement-account-edit-head">
+                    <strong>
+                      {accountMode === 'use' && '불러온 계좌 금액 입력'}
+                      {accountMode === 'new' && '신규 계좌 목록 등록'}
+                      {accountMode === 'edit' && '기존 계좌 목록 수정'}
+                    </strong>
+                    <span>금액은 이번 정산에만 사용됩니다.</span>
+                  </div>
                   <div className="settlement-account-list">
                     {accounts.map((account) => (
                       <div key={account.id} className="settlement-account-row">
@@ -269,29 +299,40 @@ export default function SettlementScreen({
                   >
                     계좌 추가
                   </button>
+
+                  {accountMode !== 'use' && (
+                    <div className="settlement-account-actions">
+                      <input
+                        type="text"
+                        value={accountListName}
+                        onChange={(event) =>
+                          setAccountListName(event.target.value)
+                        }
+                        placeholder="계좌 목록 이름"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const didSave = onSaveAccountList(
+                            editingAccountListId,
+                            accountListName,
+                          )
+
+                          if (!didSave) {
+                            return
+                          }
+
+                          setEditingAccountListId('')
+                          setAccountListName('')
+                          setAccountMode('saved')
+                        }}
+                      >
+                        목록 저장
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
-
-              <div className="settlement-account-actions">
-                <input
-                  type="text"
-                  value={templateName}
-                  onChange={(event) => setTemplateName(event.target.value)}
-                  placeholder="템플릿 이름"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    onRegisterAccountTemplate(templateName)
-                    setTemplateName('')
-                  }}
-                >
-                  템플릿 등록
-                </button>
-                <button type="button" onClick={() => setAccountMode('template')}>
-                  완료
-                </button>
-              </div>
             </div>
 
             <div className="settlement-request-card">
@@ -317,13 +358,32 @@ export default function SettlementScreen({
               />
             </div>
 
-            <button
-              type="button"
-              onClick={onRunExport}
-              className="export-next-button"
-            >
-              파일 만들기
-            </button>
+            {format === 'excel' ? (
+              <div className="export-create-actions">
+                <button
+                  type="button"
+                  onClick={() => onRunExport('save')}
+                  className="export-next-button"
+                >
+                  기기에 저장
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRunExport('share')}
+                  className="export-share-button"
+                >
+                  공유
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onRunExport('save')}
+                className="export-next-button"
+              >
+                PDF로 저장
+              </button>
+            )}
           </>
         )}
       </div>
