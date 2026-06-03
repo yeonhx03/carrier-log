@@ -331,6 +331,15 @@ export default function SettlementScreen({
                       </button>
                     </div>
                   )}
+                  {accountMode === 'use' && (
+                    <button
+                      type="button"
+                      onClick={() => setAccountMode('saved')}
+                      className="settlement-account-complete"
+                    >
+                      완료
+                    </button>
+                  )}
                 </>
               )}
             </div>

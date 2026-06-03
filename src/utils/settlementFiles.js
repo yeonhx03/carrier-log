@@ -94,35 +94,39 @@ function getCompanyGroups(logs) {
 }
 
 function getCompanySettlement(group, noteCategories) {
-  const rows = getSettlementRows(noteCategories).map((row) => {
-    const quantity = group.logs.filter((log) => {
-      return row.values.includes(normalizeNote(log.note, noteCategories))
-    }).length
-    const amount = quantity * row.unitPrice
+  const rows = getSettlementRows(noteCategories)
+    .map((row) => {
+      const quantity = group.logs.filter((log) => {
+        return row.values.includes(normalizeNote(log.note, noteCategories))
+      }).length
+      const amount = quantity * row.unitPrice
 
-    return {
-      ...row,
-      quantity,
-      amount,
-      amountText: quantity > 0 || row.key === 'default' ? formatNumber(amount) : '-',
-      quantityText: quantity > 0 ? String(quantity) : '',
-    }
-  })
+      return {
+        ...row,
+        quantity,
+        amount,
+        amountText: formatNumber(amount),
+        quantityText: String(quantity),
+      }
+    })
+    .filter((row) => row.quantity > 0)
   const extraKm = group.logs.reduce(
     (sum, log) => sum + Number(log.extraKm || 0),
     0,
   )
   const extraKmAmount = extraKm * EXTRA_KM_RATE
 
-  rows.push({
-    key: 'extraKm',
-    quantity: '',
-    quantityText: '',
-    unitPrice: EXTRA_KM_RATE,
-    amount: extraKmAmount,
-    amountText: extraKm > 0 ? formatNumber(extraKmAmount) : '-',
-    label: `추가견인(${formatNumber(extraKm)}K)`,
-  })
+  if (extraKm > 0) {
+    rows.push({
+      key: 'extraKm',
+      quantity: '',
+      quantityText: '',
+      unitPrice: EXTRA_KM_RATE,
+      amount: extraKmAmount,
+      amountText: formatNumber(extraKmAmount),
+      label: `추가견인(${formatNumber(extraKm)}K)`,
+    })
+  }
 
   const subtotal = rows.reduce((sum, row) => sum + row.amount, 0)
 
@@ -200,7 +204,6 @@ function buildExcelCompanyRows(company) {
 
   return `${detailRows}
       <Row>
-        <Cell ss:StyleID="Subtotal"><Data ss:Type="String"></Data></Cell>
         <Cell ss:StyleID="Subtotal"><Data ss:Type="String">${company.quantity}</Data></Cell>
         <Cell ss:StyleID="Subtotal"><Data ss:Type="String">소계</Data></Cell>
         <Cell ss:StyleID="Subtotal"><Data ss:Type="String">${escapeXml(formatNumber(company.subtotal))}</Data></Cell>
