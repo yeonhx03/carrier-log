@@ -1,4 +1,10 @@
-import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import {
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase'
 
 export { isFirebaseConfigured }
@@ -40,4 +46,14 @@ export function saveAppData(userId, data) {
     },
     { merge: true },
   )
+}
+
+export function deleteAppData(userId) {
+  const appDataRef = getAppDataRef(userId)
+
+  if (!appDataRef) {
+    return Promise.resolve()
+  }
+
+  return deleteDoc(appDataRef)
 }

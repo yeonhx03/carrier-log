@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
 import { Capacitor } from '@capacitor/core'
 import {
+  deleteUser,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   signInWithCredential,
   signInWithPopup,
   signOut,
@@ -40,6 +43,7 @@ import {
   getSettlementSummary,
 } from './utils/settlementFiles'
 import {
+  deleteAppData,
   isFirebaseConfigured,
   saveAppData,
   subscribeAppData,
@@ -161,6 +165,8 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(isFirebaseConfigured)
   const [authErrorMessage, setAuthErrorMessage] = useState('')
   const [firebaseUser, setFirebaseUser] = useState(null)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState('')
   const appDataRef = useRef({
     companies,
     noteCategories,
@@ -172,6 +178,7 @@ function App() {
   })
   const isApplyingCloudDataRef = useRef(false)
   const isCloudReadyRef = useRef(!isFirebaseConfigured)
+  const isDeletingAccountRef = useRef(false)
 
   const selectedLog = logs.find((log) => log.id === selectedLogId)
   const firebaseUserId = firebaseUser?.uid || ''
@@ -228,6 +235,10 @@ function App() {
       userId: firebaseUserId,
       onData: (cloudData) => {
         if (!cloudData) {
+          if (isDeletingAccountRef.current) {
+            return
+          }
+
           isCloudReadyRef.current = true
           saveAppData(firebaseUserId, appDataRef.current).catch((error) => {
             console.error('Firebase initial save failed', error)
@@ -318,7 +329,8 @@ function App() {
       !isFirebaseConfigured ||
       !firebaseUserId ||
       !isCloudReadyRef.current ||
-      isApplyingCloudDataRef.current
+      isApplyingCloudDataRef.current ||
+      isDeletingAccountRef.current
     ) {
       return undefined
     }
@@ -892,6 +904,46 @@ function App() {
     ].slice(0, 8))
   }
 
+  const resetUserData = () => {
+    setCompanies(initialCompanies)
+    setNoteCategories(initialNoteCategories)
+    setLogs([])
+    setSettlementAccounts(defaultSettlementAccounts)
+    setSettlementAccountTemplates([])
+    setSettlementFixedDeduction(DEFAULT_FIXED_DEDUCTION)
+    setSettlementRequestTemplates([])
+    setSettlementRequest('')
+    setSelectedLogId(null)
+    setSelectedHistoryCompanyId(null)
+    setSelectedHistoryGroupKey(null)
+    setScreen('home')
+  }
+
+  const reauthenticateCurrentUser = async () => {
+    if (!auth?.currentUser) {
+      throw new Error('Current Firebase user was not found.')
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      const result = await FirebaseAuthentication.signInWithGoogle({
+        skipNativeAuth: true,
+      })
+      const idToken = result.credential?.idToken
+
+      if (!idToken) {
+        throw new Error('Google ID token was not returned.')
+      }
+
+      await reauthenticateWithCredential(
+        auth.currentUser,
+        GoogleAuthProvider.credential(idToken),
+      )
+      return
+    }
+
+    await reauthenticateWithPopup(auth.currentUser, new GoogleAuthProvider())
+  }
+
   const handleGoogleSignIn = () => {
     if (!auth) {
       setAuthErrorMessage('Firebase 설정을 확인해주세요.')
@@ -954,6 +1006,64 @@ function App() {
       .catch((error) => {
         console.error('Google sign out failed', error)
       })
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!auth?.currentUser || !firebaseUserId || isDeletingAccountRef.current) {
+      return
+    }
+
+    let cloudDataDeleted = false
+
+    isDeletingAccountRef.current = true
+    setIsDeletingAccount(true)
+    setDeleteAccountError('')
+
+    try {
+      await reauthenticateCurrentUser()
+      await deleteAppData(firebaseUserId)
+      cloudDataDeleted = true
+      await deleteUser(auth.currentUser)
+
+      if (Capacitor.isNativePlatform()) {
+        await FirebaseAuthentication.signOut().catch((error) => {
+          console.error('Native Google sign out after account deletion failed', error)
+        })
+      }
+
+      resetUserData()
+      setIsLocalOnlyMode(false)
+      setIsSettingOpen(false)
+      setSettingSection('menu')
+    } catch (error) {
+      console.error('Firebase account deletion failed', error)
+
+      if (cloudDataDeleted) {
+        resetUserData()
+        setIsLocalOnlyMode(false)
+        setIsSettingOpen(false)
+        setSettingSection('menu')
+        setAuthErrorMessage(
+          '서버 데이터는 삭제되었지만 계정 삭제를 완료하지 못했습니다. 다시 로그인한 후 계정 삭제를 재시도해주세요.',
+        )
+        if (Capacitor.isNativePlatform()) {
+          await FirebaseAuthentication.signOut().catch((signOutError) => {
+            console.error('Native sign out after account deletion failure failed', signOutError)
+          })
+        }
+        await signOut(auth).catch((signOutError) => {
+          console.error('Firebase sign out after account deletion failure failed', signOutError)
+        })
+        return
+      }
+
+      setDeleteAccountError(
+        '계정 삭제에 실패했습니다. Google 계정을 다시 확인한 후 재시도해주세요.',
+      )
+    } finally {
+      isDeletingAccountRef.current = false
+      setIsDeletingAccount(false)
+    }
   }
 
   const renderHistoryScreen = () => {
@@ -1189,6 +1299,8 @@ function App() {
           section={settingSection}
           currentUser={firebaseUser}
           isLocalOnlyMode={isLocalOnlyMode}
+          isDeletingAccount={isDeletingAccount}
+          deleteAccountError={deleteAccountError}
           companies={companies}
           noteCategories={noteCategories}
           fixedDeduction={settlementFixedDeduction}
@@ -1202,6 +1314,7 @@ function App() {
           onChangeSection={setSettingSection}
           onGoogleSignIn={handleGoogleSignIn}
           onSignOut={handleSignOut}
+          onDeleteAccount={handleDeleteAccount}
           onChangeNewCompanyName={setNewCompanyName}
           onAddCompany={handleAddCompany}
           onRenameCompany={handleRenameCompany}
