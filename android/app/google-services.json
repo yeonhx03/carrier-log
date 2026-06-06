@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "635352464620-b5la30apdvtl81mkjf2k3jtk4sfq61mk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yeonhx03.carrierlog",
+            "certificate_hash": "5296fad407dd91eeba29513579abc1a514259ca2"
+          }
+        },
+        {
           "client_id": "635352464620-df67tbpf6t5m24st5mfvc3b8v08tip8j.apps.googleusercontent.com",
           "client_type": 3
         }
