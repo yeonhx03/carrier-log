@@ -166,17 +166,33 @@ export function buildPrintHtml(monthKey, groups) {
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(monthLabel)} 운행일지</title>
   <style>
-    @page { size: A4 landscape; margin: 12mm; }
+    @page { size: A4 portrait; margin: 12mm; }
     body { color: #111827; font-family: Arial, "Malgun Gothic", sans-serif; margin: 0; }
     .report-section { page-break-after: always; }
     .report-section:last-child { page-break-after: auto; }
-    h1 { font-size: 20px; margin: 0 0 12px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #111827; font-size: 13px; height: 28px; padding: 4px 6px; text-align: center; }
+    h1 { font-size: 16px; margin: 0 0 8px; }
+    table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+    thead { display: table-header-group; }
+    th, td {
+      border: 1px solid #111827;
+      box-sizing: border-box;
+      font-size: 10px;
+      height: 20px;
+      line-height: 1.15;
+      padding: 2px 3px;
+      text-align: center;
+    }
     th { background: #e5e7eb; font-weight: 700; }
     td:nth-child(3), td:nth-child(6) { text-align: left; }
+    th:nth-child(1), td:nth-child(1) { width: 8%; }
+    th:nth-child(2), td:nth-child(2) { width: 15%; }
+    th:nth-child(3), td:nth-child(3) { width: 22%; }
+    th:nth-child(4), td:nth-child(4) { width: 17%; }
+    th:nth-child(5), td:nth-child(5) { width: 12%; }
+    th:nth-child(6), td:nth-child(6) { width: 26%; }
     .total-row td { background: #f3f4f6; font-weight: 700; }
   </style>
 </head>
