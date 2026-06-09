@@ -8,6 +8,7 @@ export function useSettingsController({
   setNoteCategories,
   setLogs,
   setSettlementFixedDeduction,
+  setSettlementExtraKmRate,
 }) {
   const [isSettingOpen, setIsSettingOpen] = useState(false)
   const [settingSection, setSettingSection] = useState('menu')
@@ -129,6 +130,10 @@ export function useSettingsController({
     setSettlementFixedDeduction(Number(nextPrice || 0))
   }
 
+  const handleUpdateExtraKmRate = (nextPrice) => {
+    setSettlementExtraKmRate(Number(nextPrice || 0))
+  }
+
   const handleAddNoteCategory = () => {
     const trimmedName = newNoteCategoryName.trim()
 
@@ -182,6 +187,7 @@ export function useSettingsController({
     handleUpdateNoteCategory,
     handleUpdateDefaultUnitPrice,
     handleUpdateFixedDeduction,
+    handleUpdateExtraKmRate,
     handleAddNoteCategory,
     handleDeleteNoteCategory,
   }

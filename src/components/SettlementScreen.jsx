@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DEDUCTION_RATE, EXTRA_KM_RATE } from '../utils/settlementFiles'
+import { DEDUCTION_RATE } from '../utils/settlementFiles'
 
 function formatMoney(value) {
   return Math.round(value).toLocaleString('ko-KR')
@@ -10,6 +10,7 @@ export default function SettlementScreen({
   selectedMonth,
   format,
   noteCategories,
+  extraKmRate = 0,
   summary,
   logsCount,
   step,
@@ -425,7 +426,7 @@ export default function SettlementScreen({
 
             <div className="settlement-rate-row">
               <span>추가 KM</span>
-              <strong>{EXTRA_KM_RATE.toLocaleString('ko-KR')}원</strong>
+              <strong>{extraKmRate.toLocaleString('ko-KR')}원</strong>
             </div>
           </section>
         </div>

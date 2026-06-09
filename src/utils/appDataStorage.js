@@ -1,6 +1,9 @@
 import { initialNoteCategories } from '../data/noteCategories'
 import { initialCompanies } from '../data/sampleData'
-import { DEFAULT_FIXED_DEDUCTION } from './settlementFiles'
+import {
+  DEFAULT_EXTRA_KM_RATE,
+  DEFAULT_FIXED_DEDUCTION,
+} from './settlementFiles'
 
 export const defaultSettlementAccounts = [
   { id: 1, name: '', bank: '', accountNumber: '', amount: '' },
@@ -48,6 +51,7 @@ export function getDefaultAppData() {
     settlementAccounts: defaultSettlementAccounts,
     settlementAccountTemplates: [],
     settlementFixedDeduction: DEFAULT_FIXED_DEDUCTION,
+    settlementExtraKmRate: DEFAULT_EXTRA_KM_RATE,
     settlementRequestTemplates: [],
   }
 }

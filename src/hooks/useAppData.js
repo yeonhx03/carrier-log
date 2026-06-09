@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { initialNoteCategories } from '../data/noteCategories'
 import { initialCompanies } from '../data/sampleData'
 import { isFirebaseConfigured, saveAppData, subscribeAppData } from '../utils/cloudStore'
@@ -13,7 +13,10 @@ import {
   persistJson,
   persistString,
 } from '../utils/appDataStorage'
-import { DEFAULT_FIXED_DEDUCTION } from '../utils/settlementFiles'
+import {
+  DEFAULT_EXTRA_KM_RATE,
+  DEFAULT_FIXED_DEDUCTION,
+} from '../utils/settlementFiles'
 
 export function useAppData(firebaseUserId) {
   const [companies, setCompanies] = useState(() =>
@@ -22,9 +25,12 @@ export function useAppData(firebaseUserId) {
   const [noteCategories, setNoteCategories] = useState(() =>
     getInitialStoredValue('noteCategories', initialNoteCategories),
   )
-  const [logs, setLogs] = useState(() => getInitialStoredValue('logs', []))
+  const [logs, setLogsState] = useState(() => getInitialStoredValue('logs', []))
   const [settlementFixedDeduction, setSettlementFixedDeduction] = useState(() =>
     getInitialNumber('settlementFixedDeduction', DEFAULT_FIXED_DEDUCTION),
+  )
+  const [settlementExtraKmRate, setSettlementExtraKmRate] = useState(() =>
+    getInitialNumber('settlementExtraKmRate', DEFAULT_EXTRA_KM_RATE),
   )
   const [settlementRequestTemplates, setSettlementRequestTemplates] = useState(
     () => getInitialStringList('settlementRequestTemplates'),
@@ -42,11 +48,13 @@ export function useAppData(firebaseUserId) {
     settlementAccounts,
     settlementAccountTemplates,
     settlementFixedDeduction,
+    settlementExtraKmRate,
     settlementRequestTemplates,
   })
   const isApplyingCloudDataRef = useRef(false)
   const isCloudReadyRef = useRef(!isFirebaseConfigured)
   const isDeletingAccountRef = useRef(false)
+  const [readyUserId, setReadyUserId] = useState('')
 
   useEffect(() => {
     appDataRef.current = {
@@ -56,6 +64,7 @@ export function useAppData(firebaseUserId) {
       settlementAccounts,
       settlementAccountTemplates,
       settlementFixedDeduction,
+      settlementExtraKmRate,
       settlementRequestTemplates,
     }
   }, [
@@ -65,6 +74,7 @@ export function useAppData(firebaseUserId) {
     settlementAccounts,
     settlementAccountTemplates,
     settlementFixedDeduction,
+    settlementExtraKmRate,
     settlementRequestTemplates,
   ])
 
@@ -84,6 +94,7 @@ export function useAppData(firebaseUserId) {
           }
 
           isCloudReadyRef.current = true
+          setReadyUserId(firebaseUserId)
           saveAppData(firebaseUserId, appDataRef.current).catch((error) => {
             console.error('Firebase initial save failed', error)
           })
@@ -93,7 +104,7 @@ export function useAppData(firebaseUserId) {
         isApplyingCloudDataRef.current = true
         setCompanies(cloudData.companies || initialCompanies)
         setNoteCategories(cloudData.noteCategories || initialNoteCategories)
-        setLogs(cloudData.logs || [])
+        setLogsState(cloudData.logs || [])
         setSettlementAccounts(
           cloudData.settlementAccounts || defaultSettlementAccounts,
         )
@@ -101,12 +112,18 @@ export function useAppData(firebaseUserId) {
           cloudData.settlementAccountTemplates || [],
         )
         setSettlementFixedDeduction(
-          Number(cloudData.settlementFixedDeduction || DEFAULT_FIXED_DEDUCTION),
+          Number(
+            cloudData.settlementFixedDeduction ?? DEFAULT_FIXED_DEDUCTION,
+          ),
+        )
+        setSettlementExtraKmRate(
+          Number(cloudData.settlementExtraKmRate ?? DEFAULT_EXTRA_KM_RATE),
         )
         setSettlementRequestTemplates(
           cloudData.settlementRequestTemplates || [],
         )
         isCloudReadyRef.current = true
+        setReadyUserId(firebaseUserId)
         window.setTimeout(() => {
           isApplyingCloudDataRef.current = false
         }, 0)
@@ -114,9 +131,42 @@ export function useAppData(firebaseUserId) {
       onError: (error) => {
         console.error('Firebase load failed', error)
         isCloudReadyRef.current = true
+        setReadyUserId(firebaseUserId)
       },
     })
   }, [firebaseUserId])
+
+  const setLogs = useCallback(
+    (nextLogsOrUpdater) => {
+      const currentLogs = appDataRef.current.logs
+      const nextLogs =
+        typeof nextLogsOrUpdater === 'function'
+          ? nextLogsOrUpdater(currentLogs)
+          : nextLogsOrUpdater
+      const nextData = {
+        ...appDataRef.current,
+        logs: nextLogs,
+      }
+
+      appDataRef.current = nextData
+      persistJson('logs', nextLogs)
+      setLogsState(nextLogs)
+
+      if (
+        !isFirebaseConfigured ||
+        !firebaseUserId ||
+        !isCloudReadyRef.current ||
+        isDeletingAccountRef.current
+      ) {
+        return
+      }
+
+      saveAppData(firebaseUserId, nextData).catch((error) => {
+        console.error('Firebase immediate log save failed', error)
+      })
+    },
+    [firebaseUserId],
+  )
 
   useEffect(() => persistJson('companies', companies), [companies])
   useEffect(() => persistJson('noteCategories', noteCategories), [noteCategories])
@@ -132,6 +182,10 @@ export function useAppData(firebaseUserId) {
   useEffect(
     () => persistString('settlementFixedDeduction', settlementFixedDeduction),
     [settlementFixedDeduction],
+  )
+  useEffect(
+    () => persistString('settlementExtraKmRate', settlementExtraKmRate),
+    [settlementExtraKmRate],
   )
   useEffect(
     () => persistJson('settlementRequestTemplates', settlementRequestTemplates),
@@ -163,6 +217,7 @@ export function useAppData(firebaseUserId) {
     settlementAccounts,
     settlementAccountTemplates,
     settlementFixedDeduction,
+    settlementExtraKmRate,
     settlementRequestTemplates,
     firebaseUserId,
   ])
@@ -172,10 +227,11 @@ export function useAppData(firebaseUserId) {
 
     setCompanies(defaultData.companies)
     setNoteCategories(defaultData.noteCategories)
-    setLogs(defaultData.logs)
+    setLogsState(defaultData.logs)
     setSettlementAccounts(defaultData.settlementAccounts)
     setSettlementAccountTemplates(defaultData.settlementAccountTemplates)
     setSettlementFixedDeduction(defaultData.settlementFixedDeduction)
+    setSettlementExtraKmRate(defaultData.settlementExtraKmRate)
     setSettlementRequestTemplates(defaultData.settlementRequestTemplates)
   }
 
@@ -186,12 +242,17 @@ export function useAppData(firebaseUserId) {
     setNoteCategories,
     logs,
     setLogs,
+    isDataReady:
+      !isFirebaseConfigured || !firebaseUserId || readyUserId === firebaseUserId,
+    readyUserId,
     settlementAccounts,
     setSettlementAccounts,
     settlementAccountTemplates,
     setSettlementAccountTemplates,
     settlementFixedDeduction,
     setSettlementFixedDeduction,
+    settlementExtraKmRate,
+    setSettlementExtraKmRate,
     settlementRequestTemplates,
     setSettlementRequestTemplates,
     isDeletingAccountRef,

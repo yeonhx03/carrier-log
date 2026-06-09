@@ -19,6 +19,22 @@ import { getMonthLabel } from './utils/date'
 import { isFirebaseConfigured } from './utils/cloudStore'
 import { getCompanyName } from './utils/logSelectors'
 
+function DataSyncScreen() {
+  return (
+    <section className="phone-screen auth-screen sync-screen">
+      <div className="auth-brand">
+        <h1>Carrier Log</h1>
+        <p>운행 데이터를 불러오는 중</p>
+      </div>
+
+      <div className="sync-message">
+        <strong>잠시만 기다려주세요.</strong>
+        <span>저장된 내역을 확인한 뒤 앱을 시작합니다.</span>
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const [screen, setScreen] = useState('home')
   const authAccount = useAuthAccount()
@@ -39,6 +55,7 @@ function App() {
     companies: appData.companies,
     noteCategories: appData.noteCategories,
     settlementFixedDeduction: appData.settlementFixedDeduction,
+    settlementExtraKmRate: appData.settlementExtraKmRate,
     settlementAccounts: appData.settlementAccounts,
     setSettlementAccounts: appData.setSettlementAccounts,
     setSettlementAccountTemplates: appData.setSettlementAccountTemplates,
@@ -52,6 +69,7 @@ function App() {
     setNoteCategories: appData.setNoteCategories,
     setLogs: appData.setLogs,
     setSettlementFixedDeduction: appData.setSettlementFixedDeduction,
+    setSettlementExtraKmRate: appData.setSettlementExtraKmRate,
   })
 
   const resetDeletedAccountState = () => {
@@ -173,6 +191,7 @@ function App() {
       selectedMonth={settlement.selectedSettlementMonth}
       format={settlement.settlementFormat}
       noteCategories={appData.noteCategories}
+      extraKmRate={appData.settlementExtraKmRate}
       summary={settlement.settlementSummary}
       logsCount={settlement.settlementLogs.length}
       step={settlement.settlementStep}
@@ -237,10 +256,14 @@ function App() {
     return null
   }
 
+  const isSignedInDataReady =
+    authAccount.firebaseUser &&
+    appData.isDataReady &&
+    appData.readyUserId === authAccount.firebaseUserId
   const canUseApp =
     !isFirebaseConfigured ||
-    authAccount.firebaseUser ||
-    authAccount.isLocalOnlyMode
+    authAccount.isLocalOnlyMode ||
+    isSignedInDataReady
 
   return (
     <main className="app-shell">
@@ -255,6 +278,10 @@ function App() {
               onStartLocalOnly={authAccount.handleStartLocalOnly}
             />
           )}
+        {isFirebaseConfigured &&
+          authAccount.firebaseUser &&
+          !authAccount.isLocalOnlyMode &&
+          !isSignedInDataReady && <DataSyncScreen />}
         {canUseApp && renderAppScreen()}
       </div>
 
@@ -268,6 +295,7 @@ function App() {
           companies={appData.companies}
           noteCategories={appData.noteCategories}
           fixedDeduction={appData.settlementFixedDeduction}
+          extraKmRate={appData.settlementExtraKmRate}
           newCompanyName={settings.newCompanyName}
           newNoteCategoryName={settings.newNoteCategoryName}
           newNoteCategoryPrice={settings.newNoteCategoryPrice}
@@ -286,6 +314,7 @@ function App() {
           onUpdateNoteCategory={settings.handleUpdateNoteCategory}
           onUpdateDefaultUnitPrice={settings.handleUpdateDefaultUnitPrice}
           onUpdateFixedDeduction={settings.handleUpdateFixedDeduction}
+          onUpdateExtraKmRate={settings.handleUpdateExtraKmRate}
           onDeleteNoteCategory={settings.handleDeleteNoteCategory}
         />
       )}

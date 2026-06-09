@@ -9,6 +9,7 @@ export default function SettingsPanel({
   companies,
   noteCategories,
   fixedDeduction,
+  extraKmRate,
   newCompanyName,
   newNoteCategoryName,
   newNoteCategoryPrice,
@@ -27,6 +28,7 @@ export default function SettingsPanel({
   onUpdateNoteCategory,
   onUpdateDefaultUnitPrice,
   onUpdateFixedDeduction,
+  onUpdateExtraKmRate,
   onDeleteNoteCategory,
 }) {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
@@ -80,7 +82,7 @@ export default function SettingsPanel({
         </button>
         <button type="button" onClick={() => onChangeSection('rates')}>
           <span>정산 단가 수정</span>
-          <strong>비고 카테고리 / 단가</strong>
+          <strong>기본 / KM / 비고 단가</strong>
         </button>
       </div>
     </>
@@ -205,7 +207,7 @@ export default function SettingsPanel({
       </div>
 
       <div className="setting-list">
-        <div className="setting-rate-row">
+        <div className="setting-rate-row setting-rate-base-row">
           <input type="text" value="비고 없음" readOnly />
           <input
             type="number"
@@ -216,7 +218,7 @@ export default function SettingsPanel({
           />
         </div>
 
-        <div className="setting-rate-row">
+        <div className="setting-rate-row setting-rate-base-row">
           <input type="text" value="고정 공제" readOnly />
           <input
             type="number"
@@ -224,6 +226,17 @@ export default function SettingsPanel({
             min="0"
             defaultValue={fixedDeduction}
             onBlur={(event) => onUpdateFixedDeduction(event.target.value)}
+          />
+        </div>
+
+        <div className="setting-rate-row setting-rate-base-row">
+          <input type="text" value="기본 KM 단가" readOnly />
+          <input
+            type="number"
+            inputMode="numeric"
+            min="0"
+            defaultValue={extraKmRate}
+            onBlur={(event) => onUpdateExtraKmRate(event.target.value)}
           />
         </div>
 

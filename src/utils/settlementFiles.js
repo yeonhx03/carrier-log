@@ -1,6 +1,7 @@
 import { getMonthLabel } from './date'
 
-export const EXTRA_KM_RATE = 2000
+export const DEFAULT_EXTRA_KM_RATE = 2000
+export const EXTRA_KM_RATE = DEFAULT_EXTRA_KM_RATE
 export const DEDUCTION_RATE = 0.045
 export const DEFAULT_FIXED_DEDUCTION = 150000
 
@@ -93,7 +94,7 @@ function getCompanyGroups(logs) {
   return Array.from(groupMap.values())
 }
 
-function getCompanySettlement(group, noteCategories) {
+function getCompanySettlement(group, noteCategories, extraKmRate) {
   const rows = getSettlementRows(noteCategories)
     .map((row) => {
       const quantity = group.logs.filter((log) => {
@@ -114,14 +115,14 @@ function getCompanySettlement(group, noteCategories) {
     (sum, log) => sum + Number(log.extraKm || 0),
     0,
   )
-  const extraKmAmount = extraKm * EXTRA_KM_RATE
+  const extraKmAmount = extraKm * extraKmRate
 
   if (extraKm > 0) {
     rows.push({
       key: 'extraKm',
       quantity: '',
       quantityText: '',
-      unitPrice: EXTRA_KM_RATE,
+      unitPrice: extraKmRate,
       amount: extraKmAmount,
       amountText: formatNumber(extraKmAmount),
       label: `추가견인(${formatNumber(extraKm)}K)`,
@@ -142,9 +143,10 @@ export function getSettlementSummary(
   logs,
   noteCategories,
   fixedDeduction = DEFAULT_FIXED_DEDUCTION,
+  extraKmRate = DEFAULT_EXTRA_KM_RATE,
 ) {
   const companies = getCompanyGroups(logs).map((group) =>
-    getCompanySettlement(group, noteCategories),
+    getCompanySettlement(group, noteCategories, extraKmRate),
   )
   const totalAmount = companies.reduce(
     (sum, company) => sum + company.subtotal,
@@ -260,11 +262,17 @@ export function buildSettlementExcel(
   logs,
   noteCategories,
   fixedDeduction = DEFAULT_FIXED_DEDUCTION,
+  extraKmRate = DEFAULT_EXTRA_KM_RATE,
   accounts = [],
   requestText = '',
 ) {
   const monthLabel = getMonthLabel(monthKey)
-  const summary = getSettlementSummary(logs, noteCategories, fixedDeduction)
+  const summary = getSettlementSummary(
+    logs,
+    noteCategories,
+    fixedDeduction,
+    extraKmRate,
+  )
   const companyRows = summary.companies.map(buildExcelCompanyRows).join('')
   const accountRows = buildExcelAccountRows(accounts)
   const requestRows = buildExcelRequestRows(requestText)
@@ -392,11 +400,17 @@ export function buildSettlementPrintHtml(
   logs,
   noteCategories,
   fixedDeduction = DEFAULT_FIXED_DEDUCTION,
+  extraKmRate = DEFAULT_EXTRA_KM_RATE,
   accounts = [],
   requestText = '',
 ) {
   const monthLabel = getMonthLabel(monthKey)
-  const summary = getSettlementSummary(logs, noteCategories, fixedDeduction)
+  const summary = getSettlementSummary(
+    logs,
+    noteCategories,
+    fixedDeduction,
+    extraKmRate,
+  )
   const companyRows = summary.companies.map(buildPrintCompanyRows).join('')
   const accountTable = buildPrintAccountTable(accounts)
   const requestBox = buildPrintRequestBox(requestText)
