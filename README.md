@@ -17,57 +17,7 @@
 - ____Mobile: Capacitor 8
 - Deployment: Firebase Hosting
 
-## 프로젝트 구조
 
-carrier-log/  
-├── src/  
-│   ├── assets/                  # 이미지 리소스  
-│   ├── components/              # 화면 및 UI 컴포넌트  
-│   │   ├── AuthScreen.jsx  
-│   │   ├── DeleteAccountPage.jsx  
-│   │   ├── ExportScreen.jsx  
-│   │   ├── HistoryCompanyTable.jsx  
-│   │   ├── HistoryScreen.jsx  
-│   │   ├── HomeScreen.jsx  
-│   │   ├── LogDetailView.jsx  
-│   │   ├── LogInputForm.jsx  
-│   │   ├── SettingsPanel.jsx  
-│   │   └── SettlementScreen.jsx  
-│   ├── hooks/                   # 기능별 상태 및 비즈니스 로직  
-│   │   ├── useAppData.js  
-│   │   ├── useAuthAccount.js  
-│   │   ├── useExportController.js  
-│   │   ├── useHistoryController.js  
-│   │   ├── useSettingsController.js  
-│   │   └── useSettlementController.js  
-│   ├── data/                    # 초기 데이터 및 설정값  
-│   │   ├── noteCategories.js  
-│   │   └── sampleData.js  
-│   ├── utils/                   # 저장, 조회, 내보내기 유틸리티  
-│   │   ├── appDataStorage.js  
-│   │   ├── cloudStore.js  
-│   │   ├── companies.js  
-│   │   ├── date.js  
-│   │   ├── exportFiles.js  
-│   │   ├── historySelectors.js  
-│   │   ├── logSelectors.js  
-│   │   ├── nativeExport.js  
-│   │   └── settlementFiles.js  
-│   ├── App.jsx                  # 애플리케이션 루트  
-│   ├── App.css  
-│   ├── firebase.js              # Firebase 초기화  
-│   ├── index.css  
-│   └── main.jsx                 # React 진입점  
-├── public/                      # 정적 리소스  
-├── android/                     # Capacitor Android 프로젝트  
-├── ios/                         # Capacitor iOS 프로젝트  
-├── docs/                        # 프로젝트 문서  
-├── capacitor.config.json        # Capacitor 설정  
-├── firebase.json                # Firebase Hosting 설정  
-├── vite.config.js               # Vite 설정  
-├── eslint.config.js             # ESLint 설정  
-├── package.json  
-└── README.md  
 
 ## 페이지별 기능
 
