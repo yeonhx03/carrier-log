@@ -1,16 +1,14 @@
-# React + Vite
+# 탁송 업무 운행기록 앱 Carrier-log
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+배포 URL: 
 
-Currently, two official plugins are available:
+## 프로젝트 소개
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- carrier-log는 탁송 업무를 하시는 기사님을 위한 운행정보 기록 앱입니다.
+- 소속된 회사에 운행정보 기록 프로그램이 없거나, 프리랜서로 일하시는 경우 수기로 작성하는 번거로움을 없애고자 제작하게 되었습니다.
+- Google 계정 혹은 E-mail을 통해 로그인하고, 정보를 저장, 조회할 수 있습니다.
+- **설정** 항목에서 탁송 차량 별 운행단가, 기본 km 당 운행단가를 입력할 수 있습니다.
+- **운행기록** 항목에서 실제 운행 정보를 입력할 수 있습니다.
+- **운행조회** 항목에서 월별, 보험사별 총 운행 기록를 확인할 수 있습니다.
+- **내보내기** 항목에서 월별, 보험사별 총 운행 기록을 pdf 혹은 Exel 파일로 export할 수 있습니다.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
