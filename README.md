@@ -12,8 +12,10 @@
 
 ## 개발 환경
 
-- Front End: 
--  Back End:
+-  Front End: React 19, Vite 8, CSS
+-   Back End: Firebase Authentication, Cloud Firestore
+- ____Mobile: Capacitor 8
+- Deployment: Firebase Hosting
 
 ## 프로젝트 구조
 
