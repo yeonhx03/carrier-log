@@ -1,6 +1,6 @@
 # 탁송 업무 운행기록 앱 Carrier-log
 
-배포 URL: 
+배포 URL: https://carrier-log-bf461.web.app
 
 ## 프로젝트 소개
 
@@ -19,6 +19,55 @@
 
 ## 프로젝트 구조
 
+carrier-log/
+├── src/
+│   ├── assets/                  # 이미지 리소스
+│   ├── components/              # 화면 및 UI 컴포넌트
+│   │   ├── AuthScreen.jsx
+│   │   ├── DeleteAccountPage.jsx
+│   │   ├── ExportScreen.jsx
+│   │   ├── HistoryCompanyTable.jsx
+│   │   ├── HistoryScreen.jsx
+│   │   ├── HomeScreen.jsx
+│   │   ├── LogDetailView.jsx
+│   │   ├── LogInputForm.jsx
+│   │   ├── SettingsPanel.jsx
+│   │   └── SettlementScreen.jsx
+│   ├── hooks/                   # 기능별 상태 및 비즈니스 로직
+│   │   ├── useAppData.js
+│   │   ├── useAuthAccount.js
+│   │   ├── useExportController.js
+│   │   ├── useHistoryController.js
+│   │   ├── useSettingsController.js
+│   │   └── useSettlementController.js
+│   ├── data/                    # 초기 데이터 및 설정값
+│   │   ├── noteCategories.js
+│   │   └── sampleData.js
+│   ├── utils/                   # 저장, 조회, 내보내기 유틸리티
+│   │   ├── appDataStorage.js
+│   │   ├── cloudStore.js
+│   │   ├── companies.js
+│   │   ├── date.js
+│   │   ├── exportFiles.js
+│   │   ├── historySelectors.js
+│   │   ├── logSelectors.js
+│   │   ├── nativeExport.js
+│   │   └── settlementFiles.js
+│   ├── App.jsx                  # 애플리케이션 루트
+│   ├── App.css
+│   ├── firebase.js              # Firebase 초기화
+│   ├── index.css
+│   └── main.jsx                 # React 진입점
+├── public/                      # 정적 리소스
+├── android/                     # Capacitor Android 프로젝트
+├── ios/                         # Capacitor iOS 프로젝트
+├── docs/                        # 프로젝트 문서
+├── capacitor.config.json        # Capacitor 설정
+├── firebase.json                # Firebase Hosting 설정
+├── vite.config.js               # Vite 설정
+├── eslint.config.js             # ESLint 설정
+├── package.json
+└── README.md
 
 ## 페이지별 기능
 
@@ -49,13 +98,13 @@
 
 ### [운행기록 내보내기]
 - 선택한 달의 운행기록내역을 PDF, Excel 중 선택하여 내보낼 수 있습니다.
-<img width="1080" height="1995" alt="운행기록내보내기" src="https://github.com/user-attachments/assets/6cc067e1-aea9-4663-80a7-d234422cba94" />
+<img width="222" height="419" alt="운행기록내보내기" src="https://github.com/user-attachments/assets/6cc067e1-aea9-4663-80a7-d234422cba94" />
 
 
 ### [정산내역서]
 - Excel, PDF 중 선택하여 선택한 달의 정산내역서를 내보낼 수 있습니다.
-<img width="1080" height="2001" alt="정산내역서1" src="https://github.com/user-attachments/assets/62912373-0ea7-427a-ac9c-fc005ca08d22" />
-<img width="1080" height="2055" alt="정산내역서2" src="https://github.com/user-attachments/assets/61b61630-1377-4caa-bd17-e61dc9cc161d" />
+<img width="222" height="419" alt="정산내역서1" src="https://github.com/user-attachments/assets/62912373-0ea7-427a-ac9c-fc005ca08d22" />
+<img width="222" height="419" alt="정산내역서2" src="https://github.com/user-attachments/assets/61b61630-1377-4caa-bd17-e61dc9cc161d" />
 
 
 
