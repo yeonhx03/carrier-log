@@ -12,8 +12,8 @@
 
 ## 개발 환경
 
--Front End: 
-- Back End:
+- Front End: 
+-  Back End:
 
 ## 프로젝트 구조
 
